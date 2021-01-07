@@ -1,0 +1,49 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  LambdaBucket:
+    Description: The bucket you upload the zipped lambda functions to
+    Type: String
+  LambdaFolder:
+    Description: The folder in the bucket your functions are uploaded to
+    Type: String
+Resources:
+  DummyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DummyFunction
+      Handler: app.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: !Sub "${LambdaFolder}/dummyfunction_src.zip"
+      Runtime: python3.7
+      Timeout: 25
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: AWSLambdaBasicExecutionRole
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: "*"

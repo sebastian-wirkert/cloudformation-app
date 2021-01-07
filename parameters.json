@@ -1,0 +1,10 @@
+[
+    {
+        "ParameterKey": "LambdaBucket",
+        "ParameterValue": "betsby-backend-config"
+    },
+    {
+        "ParameterKey": "LambdaFolder",
+        "ParameterValue": "functions"
+    }
+]
