@@ -1,5 +1,13 @@
 [
     {
+        "ParameterKey": "AppName",
+        "ParameterValue": "betsby"
+    },
+    {
+        "ParameterKey": "Stage",
+        "ParameterValue": "dev"
+    },
+    {
         "ParameterKey": "LambdaBucket",
         "ParameterValue": "betsby-backend-config"
     },

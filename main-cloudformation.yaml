@@ -1,13 +1,33 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+
 Parameters:
-  LambdaBucket:
-    Description: The bucket you upload the zipped lambda functions to
+
+  AppName:
+    Description: The name of your app
     Type: String
+
+  Stage:
+    Description: Is this a dev(elopment) or prod(uction) environment
+    Default: dev
+    Type: String
+    AllowedValues:
+      - dev
+      - prod
+
+  LambdaBucket:
+    Description: The bucket to upload the zipped lambda functions to
+    Type: String
+
   LambdaFolder:
     Description: The folder in the bucket your functions are uploaded to
     Type: String
+
 Resources:
+
+  # Lambda setup, props to 
+  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
+
   DummyFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -22,6 +42,7 @@ Resources:
         S3Key: !Sub "${LambdaFolder}/dummyfunction_src.zip"
       Runtime: python3.7
       Timeout: 25
+
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -47,3 +68,220 @@ Resources:
             - logs:CreateLogStream
             - logs:PutLogEvents
             Resource: "*"
+
+  # User authentification setup props to
+  # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
+  # https://gist.github.com/singledigit/2c4d7232fa96d9e98a3de89cf6ebe7a5
+  # amplify generated cloudformation templates
+
+  SNSRole:
+    Type: AWS::IAM::Role
+    Description: "An IAM Role to allow Cognito to send SNS messages"
+    Properties:
+      RoleName: !Sub ${AppName}-${Stage}-cognito-sns-role
+      ManagedPolicyArns:
+        - Ref: CognitoSNSPolicy
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - cognito-idp.amazonaws.com
+    DependsOn:
+      - CognitoSNSPolicy
+
+  CognitoSNSPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow Amazon Cognito to access SNS
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sns:publish
+            Resource: "*"
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Description: A Cognito user pool for authenticating users
+    Properties:
+      UserPoolName: !Sub ${AppName}-${Stage}-user-pool
+      # TODO after somewhat finalized:
+      # UpdateReplacePolicy: Retain
+      Policies:
+        PasswordPolicy:
+            MinimumLength: 6
+            RequireUppercase: false
+            RequireLowercase: false
+            RequireNumbers: false
+            RequireSymbols: false
+            TemporaryPasswordValidityDays: 7
+      AutoVerifiedAttributes:
+        - email
+      VerificationMessageTemplate:
+          EmailSubject: Dein Betsby Code
+          EmailMessage: Schön dich dabei zu haben, jetzt nur noch schnell den Code {####} eingeben
+          DefaultEmailOption: CONFIRM_WITH_CODE
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+        - Name: sub
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: false
+          Required: true
+          StringAttributeConstraints:
+              MinLength: 1
+              MaxLength: 2048
+      # TODO Email config
+      #EmailConfiguration:
+      #  SourceArn: arn:aws:ses:eu-west-1:229294447586:identity/hello@betsby.de
+      #  EmailSendingAccount: COGNITO_DEFAULT
+
+  UserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Description: "App Client used by AWS AppSync"
+    Properties:
+      ClientName: !Sub ${AppName}-${Stage}-appsync-client
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+    
+  # Creates a federeated Identity pool
+  IdentityPool:
+    Type: "AWS::Cognito::IdentityPool"
+    Properties:
+      IdentityPoolName: !Sub ${AppName}-${Stage}-Identity
+      AllowUnauthenticatedIdentities: true
+      CognitoIdentityProviders: 
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+  
+  # Create a role for unauthorized acces to AWS resources. 
+  # Very limited access. Only allows users in the previously created Identity Pool
+  CognitoUnAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 
+              - "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals: 
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": unauthenticated
+      Policies:
+        - PolicyName: "CognitoUnauthorizedPolicy"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                Resource: "*"
+              # TODO: add graphql allow
+
+  # Create a role for authorized acces to AWS resources. Control what your user can access. This example only allows Lambda invokation
+  # Only allows users in the previously created Identity Pool
+  CognitoAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 
+              - "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals: 
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Policies:
+        - PolicyName: "CognitoAuthorizedPolicy"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              # TODO: add graphql allow
+              #- Effect: "Allow"
+              #  Action:
+              #    - "lambda:InvokeFunction"
+              #  Resource: "*"
+  
+  # Assigns the roles to the Identity Pool
+  IdentityPoolRoleMapping:
+    Type: "AWS::Cognito::IdentityPoolRoleAttachment"
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthorizedRole.Arn
+        unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
+  
+  # Appsync API. props to
+  # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
+
+  AppSyncApi:
+    Type: "AWS::AppSync::GraphQLApi"
+    Description: "The GraphQL API"
+    Properties:
+      AuthenticationType: "AMAZON_COGNITO_USER_POOLS"
+      Name: !Sub "${AppName}-${Stage}-Api"
+      UserPoolConfig:
+        UserPoolId: !Ref UserPoolClient
+        AwsRegion: !Sub ${AWS::Region}
+        DefaultAction: "ALLOW"
+  
+  AppSyncSchema:
+    Type: "AWS::AppSync::GraphQLSchema"
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      # TODO: replace by our own schema
+      Definition: |
+
+        type Show {
+          sID: ID!
+          sName: String
+          description: String
+        }
+
+        type Shows {
+          notes: [Show!]!
+          nextToken: String
+        }
+
+        type Query {
+          allShows(limit: Int, nextToken: String): Shows!
+          getShow(sID: ID!): Show
+        }
+
+        type Mutation {
+          saveShow(sID: ID!, sName: String!, description: String!): Show
+          deleteShow(sID: ID!): Show
+        }
+
+        type Schema {
+          query: Query
+          mutation: Mutation
+        }
