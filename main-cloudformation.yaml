@@ -28,6 +28,7 @@ Resources:
   # Lambda setup, props to 
   # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
 
+
   DummyFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -55,7 +56,7 @@ Resources:
             Service:
             - lambda.amazonaws.com
           Action:
-          - sts:AssumeRole
+          - sts:AssumeRole        
       Path: "/"
       Policies:
       - PolicyName: AWSLambdaBasicExecutionRole
@@ -165,7 +166,7 @@ Resources:
         - ClientId: !Ref UserPoolClient
           ProviderName: !GetAtt UserPool.ProviderName
   
-  # Create a role for unauthorized acces to AWS resources. 
+  # Create a role for unauthorized access to AWS resources. 
   # Very limited access. Only allows users in the previously created Identity Pool
   CognitoUnAuthorizedRole:
     Type: "AWS::IAM::Role"
@@ -192,8 +193,9 @@ Resources:
                 Action:
                   - "mobileanalytics:PutEvents"
                   - "cognito-sync:*"
+                  # TODO: add graphql allow
                 Resource: "*"
-              # TODO: add graphql allow
+                
 
   # Create a role for authorized acces to AWS resources. Control what your user can access. This example only allows Lambda invokation
   # Only allows users in the previously created Identity Pool
@@ -241,7 +243,7 @@ Resources:
   
   # Appsync API. props to
   # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
-
+  # https://github.com/sbstjn/appsync-resolvers-example/blob/master/template.yml
   AppSyncApi:
     Type: "AWS::AppSync::GraphQLApi"
     Description: "The GraphQL API"
@@ -267,7 +269,7 @@ Resources:
         }
 
         type Shows {
-          notes: [Show!]!
+          shows: [Show!]!
           nextToken: String
         }
 
@@ -285,3 +287,49 @@ Resources:
           query: Query
           mutation: Mutation
         }
+
+  
+  AppsyncLamdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}-${Stage}-AppsyncLamdaRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:        
+        - Effect: Allow
+          Principal:
+            Service: appsync.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: allow-access-to-lambda-from-appsync
+        PolicyDocument: 
+          Version: 2012-10-17
+          Statement: 
+            - Effect: Allow
+              Action: lambda:invokeFunction
+              Resource: "arn:aws:lambda:*"
+    
+
+  AppSyncDataSourceDummyFunction:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt [ AppSyncApi, ApiId ]
+      Name: handler
+      Type: AWS_LAMBDA
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt [ DummyFunction, Arn ]
+      ServiceRoleArn: !GetAtt [ AppsyncLamdaRole, Arn ]
+
+
+  AppSyncResolverPeople:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt [ AppSyncApi, ApiId ]
+      TypeName: Query
+      FieldName: getShow
+      DataSourceName: !GetAtt [ AppSyncDataSourceDummyFunction, Name ]
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
+      ResponseMappingTemplate: $util.toJson($context.result)
