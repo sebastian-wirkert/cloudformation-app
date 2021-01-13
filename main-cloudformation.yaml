@@ -124,25 +124,13 @@ Resources:
         - email
       VerificationMessageTemplate:
           EmailSubject: Dein Betsby Code
-          EmailMessage: Schön dich dabei zu haben, jetzt nur noch schnell den Code {####} eingeben
+          EmailMessage: Toll dich dabei zu haben, jetzt nur noch schnell den Code {####} eingeben
           DefaultEmailOption: CONFIRM_WITH_CODE
       Schema:
-        - Name: name
-          AttributeDataType: String
-          Mutable: true
-          Required: true
         - Name: email
           AttributeDataType: String
           Mutable: false
           Required: true
-        - Name: sub
-          AttributeDataType: String
-          DeveloperOnlyAttribute: false
-          Mutable: false
-          Required: true
-          StringAttributeConstraints:
-              MinLength: 1
-              MaxLength: 2048
       # TODO Email config
       #EmailConfiguration:
       #  SourceArn: arn:aws:ses:eu-west-1:229294447586:identity/hello@betsby.de
@@ -251,7 +239,7 @@ Resources:
       AuthenticationType: "AMAZON_COGNITO_USER_POOLS"
       Name: !Sub "${AppName}-${Stage}-Api"
       UserPoolConfig:
-        UserPoolId: !Ref UserPoolClient
+        UserPoolId: !Ref UserPool
         AwsRegion: !Sub ${AWS::Region}
         DefaultAction: "ALLOW"
   
