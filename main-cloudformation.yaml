@@ -35,9 +35,7 @@ Resources:
       FunctionName: DummyFunction
       Handler: app.handler
       Role:
-        Fn::GetAtt:
-        - LambdaExecutionRole
-        - Arn
+        !GetAtt LambdaExecutionRole.Arn
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: !Sub "${LambdaFolder}/dummyfunction_src.zip"
@@ -77,11 +75,11 @@ Resources:
 
   SNSRole:
     Type: AWS::IAM::Role
-    Description: "An IAM Role to allow Cognito to send SNS messages"
-    Properties:
+    Properties:      
+      Description: "An IAM Role to allow Cognito to send SNS messages"
       RoleName: !Sub ${AppName}-${Stage}-cognito-sns-role
       ManagedPolicyArns:
-        - Ref: CognitoSNSPolicy
+        - !Ref CognitoSNSPolicy
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -107,7 +105,6 @@ Resources:
 
   UserPool:
     Type: AWS::Cognito::UserPool
-    Description: A Cognito user pool for authenticating users
     Properties:
       UserPoolName: !Sub ${AppName}-${Stage}-user-pool
       # TODO after somewhat finalized:
@@ -122,6 +119,7 @@ Resources:
             TemporaryPasswordValidityDays: 7
       AutoVerifiedAttributes:
         - email
+      #UsernameAttributes: [email]
       VerificationMessageTemplate:
           EmailSubject: Dein Betsby Code
           EmailMessage: Toll dich dabei zu haben, jetzt nur noch schnell den Code {####} eingeben
@@ -131,6 +129,14 @@ Resources:
           AttributeDataType: String
           Mutable: false
           Required: true
+        - Name: sub
+          AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: false
+          Required: true
+          StringAttributeConstraints:
+              MinLength: "1"
+              MaxLength: "2048"
       # TODO Email config
       #EmailConfiguration:
       #  SourceArn: arn:aws:ses:eu-west-1:229294447586:identity/hello@betsby.de
@@ -138,7 +144,6 @@ Resources:
 
   UserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
-    Description: "App Client used by AWS AppSync"
     Properties:
       ClientName: !Sub ${AppName}-${Stage}-appsync-client
       GenerateSecret: false
@@ -181,9 +186,15 @@ Resources:
                 Action:
                   - "mobileanalytics:PutEvents"
                   - "cognito-sync:*"
-                  # TODO: add graphql allow
                 Resource: "*"
-                
+              - Effect: "Allow"
+                Action:
+                  - "appsync:GraphQL"
+                Resource:
+                  - !GetAtt AppSyncResolverGetShow.ResolverArn 
+                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
+                  - !Sub "arn:aws:appsync:${AWS::Region}:${AppSyncApi.ApiId}:apis/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
+        
 
   # Create a role for authorized acces to AWS resources. Control what your user can access. This example only allows Lambda invokation
   # Only allows users in the previously created Identity Pool
@@ -234,15 +245,16 @@ Resources:
   # https://github.com/sbstjn/appsync-resolvers-example/blob/master/template.yml
   AppSyncApi:
     Type: "AWS::AppSync::GraphQLApi"
-    Description: "The GraphQL API"
     Properties:
-      AuthenticationType: "AMAZON_COGNITO_USER_POOLS"
+      AuthenticationType: "AMAZON_COGNITO_USER_POOLS"    
+      AdditionalAuthenticationProviders: 
+        - AuthenticationType: "AWS_IAM"
       Name: !Sub "${AppName}-${Stage}-Api"
       UserPoolConfig:
         UserPoolId: !Ref UserPool
         AwsRegion: !Sub ${AWS::Region}
         DefaultAction: "ALLOW"
-  
+        
   AppSyncSchema:
     Type: "AWS::AppSync::GraphQLSchema"
     Properties:
@@ -303,21 +315,33 @@ Resources:
   AppSyncDataSourceDummyFunction:
     Type: AWS::AppSync::DataSource
     Properties:
-      ApiId: !GetAtt [ AppSyncApi, ApiId ]
+      ApiId: !GetAtt AppSyncApi.ApiId
       Name: handler
       Type: AWS_LAMBDA
       LambdaConfig:
-        LambdaFunctionArn: !GetAtt [ DummyFunction, Arn ]
-      ServiceRoleArn: !GetAtt [ AppsyncLamdaRole, Arn ]
+        LambdaFunctionArn: !GetAtt DummyFunction.Arn
+      ServiceRoleArn: !GetAtt AppsyncLamdaRole.Arn
 
 
-  AppSyncResolverPeople:
+  AppSyncResolverGetShow:
     Type: AWS::AppSync::Resolver    
     DependsOn: AppSyncSchema
     Properties:
-      ApiId: !GetAtt [ AppSyncApi, ApiId ]
+      ApiId: !GetAtt AppSyncApi.ApiId
       TypeName: Query
       FieldName: getShow
-      DataSourceName: !GetAtt [ AppSyncDataSourceDummyFunction, Name ]
+      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
       RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
       ResponseMappingTemplate: $util.toJson($context.result)
+
+Outputs:
+  Region:
+    Value: !Sub "${AWS::Region}"
+  UserPoolID:
+    Value: !Ref UserPool
+  IdentityPoolID:
+    Value: !Ref IdentityPool
+  GraphQLEndpoint:
+    Value: !GetAtt AppSyncApi.GraphQLUrl
+  UserPoolClientID:
+    Value: !Ref UserPoolClient
