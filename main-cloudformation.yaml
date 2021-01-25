@@ -23,6 +23,16 @@ Parameters:
     Description: The folder in the bucket your functions are uploaded to
     Type: String
 
+  MainGraphQLAuthenticationMethod:
+    Description: The main way to authenticate to graphql api
+    Type: String
+    Default: AMAZON_COGNITO_USER_POOLS
+    AllowedValues:
+      - API_KEY
+      - AWS_IAM
+      - AMAZON_COGNITO_USER_POOLS
+      - OPENID_CONNECT
+
 Resources:
 
   # Lambda setup, props to 
@@ -191,10 +201,7 @@ Resources:
                 Action:
                   - "appsync:GraphQL"
                 Resource:
-                  - !GetAtt AppSyncResolverGetShow.ResolverArn 
                   - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
-                  - !Sub "arn:aws:appsync:${AWS::Region}:${AppSyncApi.ApiId}:apis/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
-        
 
   # Create a role for authorized acces to AWS resources. Control what your user can access. This example only allows Lambda invokation
   # Only allows users in the previously created Identity Pool
@@ -225,6 +232,11 @@ Resources:
                   - "cognito-sync:*"
                   - "cognito-identity:*"
                 Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "appsync:GraphQL"
+                Resource:
+                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
               # TODO: add graphql allow
               #- Effect: "Allow"
               #  Action:
@@ -246,7 +258,7 @@ Resources:
   AppSyncApi:
     Type: "AWS::AppSync::GraphQLApi"
     Properties:
-      AuthenticationType: "AMAZON_COGNITO_USER_POOLS"    
+      AuthenticationType: !Ref MainGraphQLAuthenticationMethod
       AdditionalAuthenticationProviders: 
         - AuthenticationType: "AWS_IAM"
       Name: !Sub "${AppName}-${Stage}-Api"
@@ -335,13 +347,15 @@ Resources:
       ResponseMappingTemplate: $util.toJson($context.result)
 
 Outputs:
-  Region:
+  region:
     Value: !Sub "${AWS::Region}"
-  UserPoolID:
+  userPoolID:
     Value: !Ref UserPool
-  IdentityPoolID:
+  identityPoolID:
     Value: !Ref IdentityPool
-  GraphQLEndpoint:
+  graphQLEndpoint:
     Value: !GetAtt AppSyncApi.GraphQLUrl
-  UserPoolClientID:
+  mainGraphQLAuthenticationMethod:
+    Value: !Ref MainGraphQLAuthenticationMethod
+  userPoolClientID:
     Value: !Ref UserPoolClient

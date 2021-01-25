@@ -14,5 +14,9 @@
     {
         "ParameterKey": "LambdaFolder",
         "ParameterValue": "functions"
+    },
+    {
+        "ParameterKey": "MainGraphQLAuthenticationMethod",
+        "ParameterValue": "AMAZON_COGNITO_USER_POOLS"
     }
 ]
