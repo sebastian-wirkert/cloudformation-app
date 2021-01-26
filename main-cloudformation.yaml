@@ -232,16 +232,6 @@ Resources:
                   - "cognito-sync:*"
                   - "cognito-identity:*"
                 Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "appsync:GraphQL"
-                Resource:
-                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
-              # TODO: add graphql allow
-              #- Effect: "Allow"
-              #  Action:
-              #    - "lambda:InvokeFunction"
-              #  Resource: "*"
   
   # Assigns the roles to the Identity Pool
   IdentityPoolRoleMapping:
@@ -259,8 +249,8 @@ Resources:
     Type: "AWS::AppSync::GraphQLApi"
     Properties:
       AuthenticationType: !Ref MainGraphQLAuthenticationMethod
-      AdditionalAuthenticationProviders: 
-        - AuthenticationType: "AWS_IAM"
+      #AdditionalAuthenticationProviders: 
+      #  - AuthenticationType: "AWS_IAM"
       Name: !Sub "${AppName}-${Stage}-Api"
       UserPoolConfig:
         UserPoolId: !Ref UserPool
