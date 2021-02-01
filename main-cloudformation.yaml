@@ -82,6 +82,7 @@ Resources:
   # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
   # https://gist.github.com/singledigit/2c4d7232fa96d9e98a3de89cf6ebe7a5
   # amplify generated cloudformation templates
+  # https://gist.github.com/mtinra/ce7c4f60c94882839f2890b91f5e0978
 
   SNSRole:
     Type: AWS::IAM::Role
@@ -184,9 +185,9 @@ Resources:
               - "sts:AssumeRoleWithWebIdentity"
             Condition:
               StringEquals: 
-                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
-              "ForAnyValue:StringLike":
-                "cognito-identity.amazonaws.com:amr": unauthenticated
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: unauthenticated
       Policies:
         - PolicyName: "CognitoUnauthorizedPolicy"
           PolicyDocument: 
@@ -203,7 +204,7 @@ Resources:
                 Resource:
                   - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
 
-  # Create a role for authorized acces to AWS resources. Control what your user can access. This example only allows Lambda invokation
+  # Create a role for authorized acces to AWS resources. Control what your user can access. 
   # Only allows users in the previously created Identity Pool
   CognitoAuthorizedRole:
     Type: "AWS::IAM::Role"
@@ -218,9 +219,9 @@ Resources:
               - "sts:AssumeRoleWithWebIdentity"
             Condition:
               StringEquals: 
-                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
-              "ForAnyValue:StringLike":
-                "cognito-identity.amazonaws.com:amr": authenticated
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
       Policies:
         - PolicyName: "CognitoAuthorizedPolicy"
           PolicyDocument: 
@@ -232,6 +233,13 @@ Resources:
                   - "cognito-sync:*"
                   - "cognito-identity:*"
                 Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "appsync:GraphQL"
+                Resource:
+                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
+                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverDeleteShow.FieldName}"
+
   
   # Assigns the roles to the Identity Pool
   IdentityPoolRoleMapping:
@@ -249,13 +257,11 @@ Resources:
     Type: "AWS::AppSync::GraphQLApi"
     Properties:
       AuthenticationType: !Ref MainGraphQLAuthenticationMethod
-      #AdditionalAuthenticationProviders: 
-      #  - AuthenticationType: "AWS_IAM"
       Name: !Sub "${AppName}-${Stage}-Api"
-      UserPoolConfig:
-        UserPoolId: !Ref UserPool
-        AwsRegion: !Sub ${AWS::Region}
-        DefaultAction: "ALLOW"
+      #UserPoolConfig:
+      #  UserPoolId: !Ref UserPool
+      #  AwsRegion: !Sub ${AWS::Region}
+      #  DefaultAction: "ALLOW"
         
   AppSyncSchema:
     Type: "AWS::AppSync::GraphQLSchema"
@@ -332,6 +338,18 @@ Resources:
       ApiId: !GetAtt AppSyncApi.ApiId
       TypeName: Query
       FieldName: getShow
+      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.deleteShow", "context": $utils.toJson($context) } }'
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+
+  AppSyncResolverDeleteShow:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: deleteShow
       DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
       RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
       ResponseMappingTemplate: $util.toJson($context.result)

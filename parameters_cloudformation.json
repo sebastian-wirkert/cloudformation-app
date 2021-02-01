@@ -17,6 +17,6 @@
     },
     {
         "ParameterKey": "MainGraphQLAuthenticationMethod",
-        "ParameterValue": "AMAZON_COGNITO_USER_POOLS"
+        "ParameterValue": "AWS_IAM"
     }
 ]
