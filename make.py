@@ -12,10 +12,20 @@ from src import util
 general_parameters = None
 with open("parameters_general.yaml", 'r') as stream:
     general_parameters = yaml.safe_load(stream)
+client = boto3.client('cloudformation', region_name=general_parameters['region'])
 
+cloudformation_parameters= None
+with open('parameters_cloudformation.json') as cf_parameters_file: 
+    cloudformation_parameters = json.load(cf_parameters_file) 
+
+def make_update_stack(stack_name, template_body):    
+    with open(template_body, 'r') as template_file:
+        template = template_file.read()
+        update = client.update_stack(StackName=stack_name, TemplateBody=template,
+            Capabilities=["CAPABILITY_NAMED_IAM",], Parameters=cloudformation_parameters)
+        print(update)
 
 def make_describe_stacks(outpath):    
-    client = boto3.client('cloudformation', region_name=general_parameters['region'])
     stack_description = client.describe_stacks()
 
     file_name = os.path.join(outpath, "stacks.json")    
@@ -46,16 +56,22 @@ def make_aws_config(outpath):
 if __name__=="__main__":
     parser = argparse.ArgumentParser()    
     parser.add_argument('action',
-                    choices=['generate_aws_config', "describe_stack_config"],
+                    choices=['update_stack', 'generate_aws_config', "describe_stack_config"],
                     type=str,
                     help='what shall be done')
     parser.add_argument("--outpath", default='out', required=False, type=str,
-        help="whereto outputs shall be written")
+        help="whereto outputs shall be written")    
+    parser.add_argument("--stack_name", default='main-stack', required=False, type=str,
+        help="name of the stack")
+    parser.add_argument("--template_body", default='main-cloudformation.yaml', required=False, type=str,
+        help="the yaml file to describe the stack")
     args = parser.parse_args()
     
     if args.action=='generate_aws_config':
         make_aws_config(args.outpath)
     elif args.action=='describe_stack_config':
         make_describe_stacks(args.outpath)
+    elif args.action=='update_stack':
+        make_update_stack(args.stack_name, args.template_body)
 
 
