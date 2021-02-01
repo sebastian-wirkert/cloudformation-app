@@ -26,7 +26,7 @@ Parameters:
   MainGraphQLAuthenticationMethod:
     Description: The main way to authenticate to graphql api
     Type: String
-    Default: AMAZON_COGNITO_USER_POOLS
+    Default: AWS_IAM
     AllowedValues:
       - API_KEY
       - AWS_IAM
@@ -238,7 +238,7 @@ Resources:
                   - "appsync:GraphQL"
                 Resource:
                   - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
-                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverDeleteShow.FieldName}"
+                  - !Sub "${AppSyncApi.Arn}/types/Mutation/fields/${AppSyncResolverDeleteShow.FieldName}"
 
   
   # Assigns the roles to the Identity Pool
