@@ -38,7 +38,7 @@ for f in folders:
                 zippedfile.write(filePath, os.path.basename(filePath))
     # upload to s3
     try:
-        with open('parameters.json') as config_file:
+        with open('src/parameters_cloudformation.json') as config_file:
             config_json = json.load(config_file)
             config_dict = {element['ParameterKey']:element['ParameterValue'] for element in config_json}
             response = s3_client.upload_file(zip_file_path, 
