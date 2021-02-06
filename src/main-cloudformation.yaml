@@ -130,7 +130,7 @@ Resources:
             TemporaryPasswordValidityDays: 7
       AutoVerifiedAttributes:
         - email
-      #UsernameAttributes: [email]
+      UsernameAttributes: [email]
       VerificationMessageTemplate:
           EmailSubject: Dein Betsby Code
           EmailMessage: Toll dich dabei zu haben, jetzt nur noch schnell den Code {####} eingeben
