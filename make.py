@@ -51,7 +51,7 @@ def make_describe_stacks(outpath=None):
     stack_description = client.describe_stacks()
     if outpath:
         file_name = os.path.join(outpath, "stacks.json")    
-        Path(outpath).mkdir(parents=true, exist_ok=true)
+        Path(outpath).mkdir(parents=True, exist_ok=True)
         with open(file_name, 'w') as fp:
             json.dump(stack_description, fp, indent=2, default=util.datetime_handler)
     return stack_description
@@ -71,6 +71,7 @@ def extract_stack_outputs(stack_name='main-stack'):
 
 def make_aws_config(outpath):    
     formatted_stack_outputs = extract_stack_outputs()    
+    formatted_stack_outputs["identityPoolRegion"]=formatted_stack_outputs["region"]
     file_name = os.path.join(outpath, "aws_config.js")
     Path(outpath).mkdir(parents=True, exist_ok=True)
     with open(file_name, 'w') as fp:

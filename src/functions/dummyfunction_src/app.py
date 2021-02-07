@@ -1,7 +1,8 @@
 import json
 
 def handler(event, context):
-    print(f"function with executed: {event}")
+    print(f"function executed with context: {context}")
+    print(f"function executed with event: {event}")
     dummyshow = "no show"
     if event.field == "getShow":
         dummyshow = "got Topmodel 2020"

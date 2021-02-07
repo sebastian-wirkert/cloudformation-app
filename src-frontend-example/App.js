@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { StyleSheet, Text, View, Button } from 'react-native';
 import Auth from '@aws-amplify/auth'
-import config from './aws-exports'
+import config from './aws_config'
 import {getApolloClient} from './src/api/apolloClient'
 import { ApolloProvider, gql } from '@apollo/client'
 
@@ -19,7 +19,7 @@ export default class App extends React.PureComponent{
   }
 
   signIn() {
-    Auth.signIn("test", "testpw").
+    Auth.signIn("test@test.de", "testpw").
       then(mes => 
         {
           this.setState({text: "logged in Testuser"})

@@ -15,6 +15,10 @@ Parameters:
       - dev
       - prod
 
+  CurrentGitHash:
+    Description: The git hash for the uploaded functions
+    Type: String
+
   LambdaBucket:
     Description: The bucket to upload the zipped lambda functions to
     Type: String
@@ -38,7 +42,6 @@ Resources:
   # Lambda setup, props to 
   # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
 
-
   DummyFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -48,7 +51,7 @@ Resources:
         !GetAtt LambdaExecutionRole.Arn
       Code:
         S3Bucket: !Ref LambdaBucket
-        S3Key: !Sub "${LambdaFolder}/dummyfunction_src.zip"
+        S3Key: !Sub "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
       Runtime: python3.7
       Timeout: 25
 
@@ -339,7 +342,7 @@ Resources:
       TypeName: Query
       FieldName: getShow
       DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.deleteShow", "context": $utils.toJson($context) } }'
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
       ResponseMappingTemplate: $util.toJson($context.result)
 
 
@@ -357,13 +360,15 @@ Resources:
 Outputs:
   region:
     Value: !Sub "${AWS::Region}"
-  userPoolID:
+  userPoolId:
     Value: !Ref UserPool
-  identityPoolID:
+  identityPoolId:
     Value: !Ref IdentityPool
   graphQLEndpoint:
     Value: !GetAtt AppSyncApi.GraphQLUrl
   mainGraphQLAuthenticationMethod:
     Value: !Ref MainGraphQLAuthenticationMethod
-  userPoolClientID:
+  userPoolWebClientId:
     Value: !Ref UserPoolClient
+  currentGitHash:
+    Value: !Ref CurrentGitHash
