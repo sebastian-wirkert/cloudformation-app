@@ -342,7 +342,7 @@ Resources:
       TypeName: Query
       FieldName: getShow
       DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
       ResponseMappingTemplate: $util.toJson($context.result)
 
 
@@ -354,7 +354,7 @@ Resources:
       TypeName: Mutation
       FieldName: deleteShow
       DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
       ResponseMappingTemplate: $util.toJson($context.result)
 
 Outputs:
