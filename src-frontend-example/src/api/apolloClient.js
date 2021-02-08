@@ -4,9 +4,9 @@
 import { createAuthLink } from 'aws-appsync-auth-link';
 import Auth from '@aws-amplify/auth'
 import { ApolloClient, InMemoryCache, createHttpLink, ApolloLink} from '@apollo/client' 
-import config from '../../aws-exports'
+import config from '../../aws_config'
 
-const url = config.graphQlEndpoint;
+const url = config.graphQLEndpoint;
 const region = config.region;
 const auth = {
   type: config.mainGraphQLAuthenticationMethod,

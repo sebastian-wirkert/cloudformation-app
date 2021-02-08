@@ -42,11 +42,12 @@ export default class App extends React.PureComponent{
       mutation fakeDelete {
         deleteShow(sID: 3) {
           description
+          sName
         }
       }
     `;
     client.mutate({mutation: DELETE_SHOW})
-    .then(resp => this.setState({text: resp.data.deleteShow.description})).catch(e => this.setState({text: e.message}))
+    .then(resp => this.setState({text: resp.data.deleteShow.sName})).catch(e => this.setState({text: e.message}))
   }
 
   loadShows() {
@@ -54,11 +55,12 @@ export default class App extends React.PureComponent{
       query queryShows {
         getShow(sID: "3") {
           description
+          sName
         }
       }
     `;
     client.query({query: LOAD_SHOWS})
-    .then(resp => this.setState({text: resp.data.getShow.description})).catch(e => this.setState({text: e.message}))
+    .then(resp => this.setState({text: resp.data.getShow.sName})).catch(e => this.setState({text: e.message}))
   }
 
   async componentDidMount(){    
