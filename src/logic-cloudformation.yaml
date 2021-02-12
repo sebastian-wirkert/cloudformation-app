@@ -1,0 +1,130 @@
+
+Resources:
+  
+  # Lambda setup, props to 
+  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
+
+  AuthorizedAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow for authorized api access 
+      Roles:
+        - !ImportValue CognitoAuthorizedRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "appsync:GraphQL"
+            Resource:
+              - !Sub 
+                - "${AppSyncApiArn}/types/Mutation/fields/${AppSyncResolver}"
+                - AppSyncApiArn: !ImportValue AppSyncApi
+                  AppSyncResolver: !GetAtt AppSyncResolverDeleteShow.FieldName
+
+
+  UnauthorizedAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow for both unauthorized and authorized api access 
+      Roles:
+        - !ImportValue CognitoAuthorizedRole
+        - !ImportValue CognitoUnAuthorizedRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "appsync:GraphQL"
+            Resource:
+              - !Sub 
+                - "${AppSyncApiArn}/types/Query/fields/${AppSyncResolver}"
+                - AppSyncApiArn: !ImportValue AppSyncApi
+                  AppSyncResolver: !GetAtt AppSyncResolverGetShow.FieldName
+
+
+  DummyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DummyFunction
+      Handler: app.handler
+      Role:
+        !ImportValue LambdaExecutionRoleArn
+      Runtime: python3.7
+      Timeout: 25
+      Code:
+        S3Bucket: !ImportValue LambdaBucket
+        S3Key: !Sub
+          - "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
+          - LambdaFolder: !ImportValue LambdaFolder
+            CurrentGitHash: !ImportValue CurrentGitHash
+
+
+  AppSyncSchema:
+    Type: "AWS::AppSync::GraphQLSchema"
+    Properties:
+      ApiId: !ImportValue AppSyncApiId
+      # TODO: replace by our own schema
+      Definition: |
+
+        type Show {
+          sID: ID!
+          sName: String
+          description: String
+        }
+
+        type Shows {
+          shows: [Show!]!
+          nextToken: String
+        }
+
+        type Query {
+          allShows(limit: Int, nextToken: String): Shows!
+          getShow(sID: ID!): Show
+        }
+
+        type Mutation {
+          saveShow(sID: ID!, sName: String!, description: String!): Show
+          deleteShow(sID: ID!): Show
+        }
+
+        type Schema {
+          query: Query
+          mutation: Mutation
+        }
+
+    
+
+  AppSyncDataSourceDummyFunction:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !ImportValue AppSyncApiId
+      Name: handler
+      Type: AWS_LAMBDA
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt DummyFunction.Arn
+      ServiceRoleArn: !ImportValue AppsyncLambdaRoleArn 
+
+
+  AppSyncResolverGetShow:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !ImportValue AppSyncApiId
+      TypeName: Query
+      FieldName: getShow
+      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+
+  AppSyncResolverDeleteShow:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !ImportValue AppSyncApiId
+      TypeName: Mutation
+      FieldName: deleteShow
+      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
+      ResponseMappingTemplate: $util.toJson($context.result)

@@ -7,7 +7,7 @@ Parameters:
     Description: The name of your app
     Type: String
 
-  Stage:
+  Env:
     Description: Is this a dev(elopment) or prod(uction) environment
     Default: dev
     Type: String
@@ -38,22 +38,6 @@ Parameters:
       - OPENID_CONNECT
 
 Resources:
-
-  # Lambda setup, props to 
-  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
-
-  DummyFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: DummyFunction
-      Handler: app.handler
-      Role:
-        !GetAtt LambdaExecutionRole.Arn
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: !Sub "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
-      Runtime: python3.7
-      Timeout: 25
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -91,7 +75,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:      
       Description: "An IAM Role to allow Cognito to send SNS messages"
-      RoleName: !Sub ${AppName}-${Stage}-cognito-sns-role
+      RoleName: !Sub ${AppName}-${Env}-cognito-sns-role
       ManagedPolicyArns:
         - !Ref CognitoSNSPolicy
       AssumeRolePolicyDocument:
@@ -120,7 +104,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub ${AppName}-${Stage}-user-pool
+      UserPoolName: !Sub ${AppName}-${Env}-user-pool
       # TODO after somewhat finalized:
       # UpdateReplacePolicy: Retain
       Policies:
@@ -159,7 +143,7 @@ Resources:
   UserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
-      ClientName: !Sub ${AppName}-${Stage}-appsync-client
+      ClientName: !Sub ${AppName}-${Env}-appsync-client
       GenerateSecret: false
       UserPoolId: !Ref UserPool
     
@@ -167,7 +151,7 @@ Resources:
   IdentityPool:
     Type: "AWS::Cognito::IdentityPool"
     Properties:
-      IdentityPoolName: !Sub ${AppName}-${Stage}-Identity
+      IdentityPoolName: !Sub ${AppName}-${Env}-Identity
       AllowUnauthenticatedIdentities: true
       CognitoIdentityProviders: 
         - ClientId: !Ref UserPoolClient
@@ -201,11 +185,6 @@ Resources:
                   - "mobileanalytics:PutEvents"
                   - "cognito-sync:*"
                 Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "appsync:GraphQL"
-                Resource:
-                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
 
   # Create a role for authorized acces to AWS resources. Control what your user can access. 
   # Only allows users in the previously created Identity Pool
@@ -236,14 +215,8 @@ Resources:
                   - "cognito-sync:*"
                   - "cognito-identity:*"
                 Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "appsync:GraphQL"
-                Resource:
-                  - !Sub "${AppSyncApi.Arn}/types/Query/fields/${AppSyncResolverGetShow.FieldName}"
-                  - !Sub "${AppSyncApi.Arn}/types/Mutation/fields/${AppSyncResolverDeleteShow.FieldName}"
-
   
+
   # Assigns the roles to the Identity Pool
   IdentityPoolRoleMapping:
     Type: "AWS::Cognito::IdentityPoolRoleAttachment"
@@ -253,6 +226,7 @@ Resources:
         authenticated: !GetAtt CognitoAuthorizedRole.Arn
         unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
   
+
   # Appsync API. props to
   # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
   # https://github.com/sbstjn/appsync-resolvers-example/blob/master/template.yml
@@ -260,50 +234,17 @@ Resources:
     Type: "AWS::AppSync::GraphQLApi"
     Properties:
       AuthenticationType: !Ref MainGraphQLAuthenticationMethod
-      Name: !Sub "${AppName}-${Stage}-Api"
+      Name: !Sub "${AppName}-${Env}-Api"
       #UserPoolConfig:
       #  UserPoolId: !Ref UserPool
       #  AwsRegion: !Sub ${AWS::Region}
       #  DefaultAction: "ALLOW"
         
-  AppSyncSchema:
-    Type: "AWS::AppSync::GraphQLSchema"
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      # TODO: replace by our own schema
-      Definition: |
-
-        type Show {
-          sID: ID!
-          sName: String
-          description: String
-        }
-
-        type Shows {
-          shows: [Show!]!
-          nextToken: String
-        }
-
-        type Query {
-          allShows(limit: Int, nextToken: String): Shows!
-          getShow(sID: ID!): Show
-        }
-
-        type Mutation {
-          saveShow(sID: ID!, sName: String!, description: String!): Show
-          deleteShow(sID: ID!): Show
-        }
-
-        type Schema {
-          query: Query
-          mutation: Mutation
-        }
-
   
   AppsyncLamdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${AppName}-${Stage}-AppsyncLamdaRole"
+      RoleName: !Sub "${AppName}-${Env}-AppsyncLamdaRole"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:        
@@ -321,49 +262,28 @@ Resources:
             - Effect: Allow
               Action: lambda:invokeFunction
               Resource: "arn:aws:lambda:*"
-    
 
-  AppSyncDataSourceDummyFunction:
-    Type: AWS::AppSync::DataSource
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      Name: handler
-      Type: AWS_LAMBDA
-      LambdaConfig:
-        LambdaFunctionArn: !GetAtt DummyFunction.Arn
-      ServiceRoleArn: !GetAtt AppsyncLamdaRole.Arn
-
-
-  AppSyncResolverGetShow:
-    Type: AWS::AppSync::Resolver    
-    DependsOn: AppSyncSchema
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      TypeName: Query
-      FieldName: getShow
-      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
-      ResponseMappingTemplate: $util.toJson($context.result)
-
-
-  AppSyncResolverDeleteShow:
-    Type: AWS::AppSync::Resolver    
-    DependsOn: AppSyncSchema
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      TypeName: Mutation
-      FieldName: deleteShow
-      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
-      ResponseMappingTemplate: $util.toJson($context.result)
 
 Outputs:
   region:
     Value: !Sub "${AWS::Region}"
   userPoolId:
     Value: !Ref UserPool
+    Export:
+      Name: UserPool
   identityPoolId:
     Value: !Ref IdentityPool
+    Export:
+      Name: IdentityPool
+  appSyncApi:
+    Value: !Ref AppSyncApi
+    Export:
+      Name: AppSyncApi
+  appSyncApiId:
+    Value: !GetAtt AppSyncApi.ApiId
+    Export:
+      Name:
+        AppSyncApiId
   graphQLEndpoint:
     Value: !GetAtt AppSyncApi.GraphQLUrl
   mainGraphQLAuthenticationMethod:
@@ -372,3 +292,29 @@ Outputs:
     Value: !Ref UserPoolClient
   currentGitHash:
     Value: !Ref CurrentGitHash
+    Export:
+      Name: CurrentGitHash
+  lambdaBucket:
+    Value: !Ref LambdaBucket
+    Export:
+      Name: LambdaBucket
+  lambdaFolder:
+    Value: !Ref LambdaFolder
+    Export:
+      Name: LambdaFolder
+  lambdaExecutionRoleArn:
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: LambdaExecutionRoleArn
+  appsyncLambdaRoleArn:
+    Value: !GetAtt AppsyncLamdaRole.Arn
+    Export:
+      Name: AppsyncLambdaRoleArn
+  cognitoAuthorizedRole:
+    Value: !Ref CognitoAuthorizedRole
+    Export:
+      NameCognitoAuthorizedRole
+  cognitoUnAuthorizedRole:
+    Value: !Ref CognitoUnAuthorizedRole
+    Export:
+      Name: CognitoUnAuthorizedRole
