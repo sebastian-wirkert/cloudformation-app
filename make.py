@@ -27,23 +27,27 @@ def make_dummy_user():
     client_idp.admin_confirm_sign_up(UserPoolId=stack_outputs['userPoolID'], Username='test@test.de')
 
 
-def make_create_stack(stack_name, template_body):    
-    with open(template_body, 'r') as template_file:
-        template = template_file.read()
-        update = client.create_stack(StackName=stack_name, TemplateBody=template,
-            Capabilities=["CAPABILITY_NAMED_IAM",], Parameters=cloudformation_parameters)
-        print(update)
-
-
 def make_delete_stack(stack_name):    
-    delete = client.delete_stack(StackName=stack_name) 
+    client.delete_stack(StackName=stack_name) 
 
 
-def make_update_stack(stack_name, template_body):    
+def make_update_stack(stack_name, template_body, use_parameters): 
+    make_change_stack(stack_name, template_body, use_parameters, client.update_stack)
+
+
+def make_create_stack(stack_name, template_body, use_parameters):    
+    make_change_stack(stack_name, template_body, use_parameters, client.create_stack)
+
+
+def make_change_stack(stack_name, template_body, use_parameters, method): 
     with open(template_body, 'r') as template_file:
         template = template_file.read()
-        update = client.update_stack(StackName=stack_name, TemplateBody=template,
-            Capabilities=["CAPABILITY_NAMED_IAM",], Parameters=cloudformation_parameters)
+        if use_parameters:
+            update = method(StackName=stack_name, TemplateBody=template,
+               Capabilities=["CAPABILITY_NAMED_IAM",], Parameters=cloudformation_parameters)
+        else:
+            update = method(StackName=stack_name, TemplateBody=template,
+               Capabilities=["CAPABILITY_NAMED_IAM",])
         print(update)
 
 
@@ -93,6 +97,7 @@ if __name__=="__main__":
         help="name of the stack")
     parser.add_argument("--template_body", default='src/main-cloudformation.yaml', required=False, type=str,
         help="the yaml file to describe the stack")
+    parser.add_argument('--no_parameters', action='store_false') 
     args = parser.parse_args()
     
     if args.action=='generate_aws_config':
@@ -100,9 +105,9 @@ if __name__=="__main__":
     elif args.action=='describe_stack_config':
         make_describe_stacks(args.outpath)
     elif args.action=='update_stack':
-        make_update_stack(args.stack_name, args.template_body)
+        make_update_stack(args.stack_name, args.template_body, args.no_parameters)
     elif args.action=='create_stack':
-        make_create_stack(args.stack_name, args.template_body)
+        make_create_stack(args.stack_name, args.template_body, args.no_parameters)
     elif args.action=='delete_stack':
         make_delete_stack(args.stack_name)
     elif args.action=='add_dummy_user':
