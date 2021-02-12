@@ -42,7 +42,7 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: LambdaExecutionRole
+      RoleName: !Sub ${AppName}-${Env}-LambdaExecutionRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -270,7 +270,7 @@ Outputs:
   userPoolId:
     Value: !Ref UserPool
     Export:
-      Name: UserPool
+      Name: !Sub ${AppName}-${Env}-UserPool
   identityPoolId:
     Value: !Ref IdentityPool
     Export:
@@ -278,7 +278,7 @@ Outputs:
   appSyncApi:
     Value: !Ref AppSyncApi
     Export:
-      Name: AppSyncApi
+      Name: !Sub ${AppName}-${Env}-AppSyncApi
   appSyncApiId:
     Value: !GetAtt AppSyncApi.ApiId
     Export:
@@ -286,22 +286,8 @@ Outputs:
         AppSyncApiId
   graphQLEndpoint:
     Value: !GetAtt AppSyncApi.GraphQLUrl
-  mainGraphQLAuthenticationMethod:
-    Value: !Ref MainGraphQLAuthenticationMethod
   userPoolWebClientId:
     Value: !Ref UserPoolClient
-  currentGitHash:
-    Value: !Ref CurrentGitHash
-    Export:
-      Name: CurrentGitHash
-  lambdaBucket:
-    Value: !Ref LambdaBucket
-    Export:
-      Name: LambdaBucket
-  lambdaFolder:
-    Value: !Ref LambdaFolder
-    Export:
-      Name: LambdaFolder
   lambdaExecutionRoleArn:
     Value: !GetAtt LambdaExecutionRole.Arn
     Export:
@@ -313,7 +299,7 @@ Outputs:
   cognitoAuthorizedRole:
     Value: !Ref CognitoAuthorizedRole
     Export:
-      NameCognitoAuthorizedRole
+      Name: CognitoAuthorizedRole
   cognitoUnAuthorizedRole:
     Value: !Ref CognitoUnAuthorizedRole
     Export:
