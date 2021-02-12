@@ -23,8 +23,8 @@ with open('src/parameters_cloudformation.json') as cf_parameters_file:
 
 def make_dummy_user():    
     stack_outputs = extract_stack_outputs()
-    client_idp.sign_up(ClientId=stack_outputs['userPoolClientID'], Username='test@test.de', Password='testpw')
-    client_idp.admin_confirm_sign_up(UserPoolId=stack_outputs['userPoolID'], Username='test@test.de')
+    client_idp.sign_up(ClientId=stack_outputs['userPoolWebClientId'], Username='test@test.de', Password='testpw')
+    client_idp.admin_confirm_sign_up(UserPoolId=stack_outputs['userPoolId'], Username='test@test.de')
 
 
 def make_delete_stack(stack_name):    
