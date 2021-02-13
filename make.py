@@ -40,13 +40,15 @@ def make_create_stack(stack_name, template_body, use_parameters):
 
 
 def make_change_stack(stack_name, template_body, use_parameters, method): 
+    cfp = cf_parameters_to_dict(cloudformation_parameters, prefix='Parameter')
+    full_stack_name = f"{cfp['AppName']}-{cfp['Env']}-{stack_name}"
     with open(template_body, 'r') as template_file:
         template = template_file.read()
         if use_parameters:
-            update = method(StackName=stack_name, TemplateBody=template,
+            update = method(StackName=full_stack_name, TemplateBody=template,
                Capabilities=["CAPABILITY_NAMED_IAM",], Parameters=cloudformation_parameters)
         else:
-            update = method(StackName=stack_name, TemplateBody=template,
+            update = method(StackName=full_stack_name, TemplateBody=template,
                Capabilities=["CAPABILITY_NAMED_IAM",])
         print(update)
 
@@ -61,20 +63,26 @@ def make_describe_stacks(outpath=None):
     return stack_description
 
 
-def extract_stack_outputs(valid_stack_names=None):
+def extract_stack_outputs(valid_stack_prefix=None):
     stack_description = make_describe_stacks()
     stacks = stack_description['Stacks']
-    if valid_stack_names:
-       	stacks = [stack for stack in stacks if stack['StackName'] in valid_stack_names]
+    if valid_stack_prefix:
+       	stacks = [stack for stack in stacks if valid_stack_prefix in stack['StackName']]
     stack_outputs = []
     for stack in stacks:
         stack_outputs.extend(stack['Outputs'])
-    formatted_stack_outputs = {output["OutputKey"]: output["OutputValue"] for output in stack_outputs}
+    formatted_stack_outputs = cf_parameters_to_dict(stack_outputs, prefix='Output')
     return formatted_stack_outputs
 
 
+def cf_parameters_to_dict(cf_parameters, prefix):
+    return {parameter[f"{prefix}Key"]: parameter[f"{prefix}Value"] for parameter in cf_parameters}
+
+
 def make_aws_config(outpath):    
-    formatted_stack_outputs = extract_stack_outputs()    
+    cfp = cf_parameters_to_dict(cloudformation_parameters, prefix='Parameter')
+    valid_stack_prefix = f"{cfp['AppName']}-{cfp['Env']}-"
+    formatted_stack_outputs = extract_stack_outputs(valid_stack_prefix)    
     formatted_stack_outputs["identityPoolRegion"]=formatted_stack_outputs["region"]
     file_name = os.path.join(outpath, "aws_config.js")
     Path(outpath).mkdir(parents=True, exist_ok=True)

@@ -259,22 +259,22 @@ Outputs:
   identityPoolId:
     Value: !Ref IdentityPool
     Export:
-      Name: IdentityPool
+      Name: !Sub ${AppName}-${Env}-IdentityPool
   userPoolWebClientId:
     Value: !Ref UserPoolClient
   lambdaExecutionRoleArn:
     Value: !GetAtt LambdaExecutionRole.Arn
     Export:
-      Name: LambdaExecutionRoleArn
+      Name: !Sub ${AppName}-${Env}-LambdaExecutionRoleArn
   appsyncLambdaRoleArn:
     Value: !GetAtt AppsyncLamdaRole.Arn
     Export:
-      Name: AppsyncLambdaRoleArn
+      Name: !Sub ${AppName}-${Env}-AppsyncLambdaRoleArn
   cognitoAuthorizedRole:
     Value: !Ref CognitoAuthorizedRole
     Export:
-      Name: CognitoAuthorizedRole
+      Name: !Sub ${AppName}-${Env}-CognitoAuthorizedRole
   cognitoUnAuthorizedRole:
     Value: !Ref CognitoUnAuthorizedRole
     Export:
-      Name: CognitoUnAuthorizedRole
+      Name: !Sub ${AppName}-${Env}-CognitoUnAuthorizedRole

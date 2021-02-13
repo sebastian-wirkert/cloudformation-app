@@ -88,12 +88,15 @@ Resources:
         }
 
 
+  # Lambda setup, props to 
+  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
+
   AuthorizedAccessPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       Description: Managed policy to allow for authorized api access 
       Roles:
-        - !ImportValue CognitoAuthorizedRole
+        - Fn::ImportValue: !Sub ${AppName}-${Env}-CognitoAuthorizedRole
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -112,8 +115,8 @@ Resources:
     Properties:
       Description: Managed policy to allow for both unauthorized and authorized api access 
       Roles:
-        - !ImportValue CognitoAuthorizedRole
-        - !ImportValue CognitoUnAuthorizedRole
+        - Fn::ImportValue: !Sub ${AppName}-${Env}-CognitoAuthorizedRole
+        - Fn::ImportValue: !Sub ${AppName}-${Env}-CognitoUnAuthorizedRole
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -130,10 +133,10 @@ Resources:
   DummyFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: DummyFunction
+      FunctionName: !Sub ${AppName}-${Env}-DummyFunction
       Handler: app.handler
       Role:
-        !ImportValue LambdaExecutionRoleArn
+        Fn::ImportValue: !Sub ${AppName}-${Env}-LambdaExecutionRoleArn
       Runtime: python3.7
       Timeout: 25
       Code:
@@ -149,7 +152,8 @@ Resources:
       Type: AWS_LAMBDA
       LambdaConfig:
         LambdaFunctionArn: !GetAtt DummyFunction.Arn
-      ServiceRoleArn: !ImportValue AppsyncLambdaRoleArn 
+      ServiceRoleArn: 
+        Fn::ImportValue: !Sub ${AppName}-${Env}-AppsyncLambdaRoleArn 
 
 
   AppSyncResolverGetShow:
@@ -185,8 +189,6 @@ Outputs:
     Value: !GetAtt AppSyncApi.ApiId
     Export:
       Name:
-        AppSyncApiId
+        !Sub ${AppName}-${Env}-AppSyncApiId
   graphQLEndpoint:
     Value: !GetAtt AppSyncApi.GraphQLUrl
-  # Lambda setup, props to 
-  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
