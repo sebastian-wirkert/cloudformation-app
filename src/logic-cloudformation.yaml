@@ -39,69 +39,25 @@ Parameters:
 
 Resources:
   
-  # Lambda setup, props to 
-  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
-
-  AuthorizedAccessPolicy:
-    Type: AWS::IAM::ManagedPolicy
+  # Appsync API. props to
+  # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
+  # https://github.com/sbstjn/appsync-resolvers-example/blob/master/template.yml
+  AppSyncApi:
+    Type: "AWS::AppSync::GraphQLApi"
     Properties:
-      Description: Managed policy to allow for authorized api access 
-      Roles:
-        - !ImportValue CognitoAuthorizedRole
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: "Allow"
-            Action:
-              - "appsync:GraphQL"
-            Resource:
-              - !Sub 
-                - "${AppSyncApiArn}/types/Mutation/fields/${AppSyncResolver}"
-                - AppSyncApiArn: 
-                    Fn::ImportValue: !Sub ${AppName}-${Env}-AppSyncApi
-                  AppSyncResolver: !GetAtt AppSyncResolverDeleteShow.FieldName
-
-
-  UnauthorizedAccessPolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      Description: Managed policy to allow for both unauthorized and authorized api access 
-      Roles:
-        - !ImportValue CognitoAuthorizedRole
-        - !ImportValue CognitoUnAuthorizedRole
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: "Allow"
-            Action:
-              - "appsync:GraphQL"
-            Resource:
-              - !Sub 
-                - "${AppSyncApiArn}/types/Query/fields/${AppSyncResolver}"
-                - AppSyncApiArn: 
-                    Fn::ImportValue: 
-                      !Sub "${AppName}-${Env}-AppSyncApi"
-                  AppSyncResolver: !GetAtt AppSyncResolverGetShow.FieldName
-
-
-  DummyFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: DummyFunction
-      Handler: app.handler
-      Role:
-        !ImportValue LambdaExecutionRoleArn
-      Runtime: python3.7
-      Timeout: 25
-      Code:
-        S3Bucket: !Ref LambdaBucket
-        S3Key: !Sub "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
-
+      AuthenticationType: !Ref MainGraphQLAuthenticationMethod
+      Name: !Sub "${AppName}-${Env}-Api"
+      UserPoolConfig:
+        UserPoolId: 
+          Fn::ImportValue: !Sub ${AppName}-${Env}-UserPool
+        AwsRegion: !Sub ${AWS::Region}
+        DefaultAction: "ALLOW"
+        
 
   AppSyncSchema:
     Type: "AWS::AppSync::GraphQLSchema"
     Properties:
-      ApiId: !ImportValue AppSyncApiId
+      ApiId: !GetAtt AppSyncApi.ApiId
       # TODO: replace by our own schema
       Definition: |
 
@@ -131,12 +87,64 @@ Resources:
           mutation: Mutation
         }
 
-    
+
+  AuthorizedAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow for authorized api access 
+      Roles:
+        - !ImportValue CognitoAuthorizedRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "appsync:GraphQL"
+            Resource:
+              - !Sub 
+                - "${AppSyncApiArn}/types/Mutation/fields/${AppSyncResolver}"
+                - AppSyncApiArn: !GetAtt AppSyncApi.Arn 
+                  AppSyncResolver: !GetAtt AppSyncResolverDeleteShow.FieldName
+
+
+  UnauthorizedAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow for both unauthorized and authorized api access 
+      Roles:
+        - !ImportValue CognitoAuthorizedRole
+        - !ImportValue CognitoUnAuthorizedRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "appsync:GraphQL"
+            Resource:
+              - !Sub 
+                - "${AppSyncApiArn}/types/Query/fields/${AppSyncResolver}"
+                - AppSyncApiArn: !GetAtt AppSyncApi.Arn 
+                  AppSyncResolver: !GetAtt AppSyncResolverGetShow.FieldName
+
+
+  DummyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DummyFunction
+      Handler: app.handler
+      Role:
+        !ImportValue LambdaExecutionRoleArn
+      Runtime: python3.7
+      Timeout: 25
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: !Sub "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
+
 
   AppSyncDataSourceDummyFunction:
     Type: AWS::AppSync::DataSource
     Properties:
-      ApiId: !ImportValue AppSyncApiId
+      ApiId: !GetAtt AppSyncApi.ApiId
       Name: handler
       Type: AWS_LAMBDA
       LambdaConfig:
@@ -148,7 +156,7 @@ Resources:
     Type: AWS::AppSync::Resolver    
     DependsOn: AppSyncSchema
     Properties:
-      ApiId: !ImportValue AppSyncApiId
+      ApiId: !GetAtt AppSyncApi.ApiId
       TypeName: Query
       FieldName: getShow
       DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
@@ -160,9 +168,25 @@ Resources:
     Type: AWS::AppSync::Resolver    
     DependsOn: AppSyncSchema
     Properties:
-      ApiId: !ImportValue AppSyncApiId
+      ApiId: !GetAtt AppSyncApi.ApiId
       TypeName: Mutation
       FieldName: deleteShow
       DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
       RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
       ResponseMappingTemplate: $util.toJson($context.result)
+
+Outputs:
+
+  appSyncApi:
+    Value: !Ref AppSyncApi
+    Export:
+      Name: !Sub ${AppName}-${Env}-AppSyncApi
+  appSyncApiId:
+    Value: !GetAtt AppSyncApi.ApiId
+    Export:
+      Name:
+        AppSyncApiId
+  graphQLEndpoint:
+    Value: !GetAtt AppSyncApi.GraphQLUrl
+  # Lambda setup, props to 
+  # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0

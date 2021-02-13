@@ -226,21 +226,6 @@ Resources:
         authenticated: !GetAtt CognitoAuthorizedRole.Arn
         unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
   
-
-  # Appsync API. props to
-  # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
-  # https://github.com/sbstjn/appsync-resolvers-example/blob/master/template.yml
-  AppSyncApi:
-    Type: "AWS::AppSync::GraphQLApi"
-    Properties:
-      AuthenticationType: !Ref MainGraphQLAuthenticationMethod
-      Name: !Sub "${AppName}-${Env}-Api"
-      #UserPoolConfig:
-      #  UserPoolId: !Ref UserPool
-      #  AwsRegion: !Sub ${AWS::Region}
-      #  DefaultAction: "ALLOW"
-        
-  
   AppsyncLamdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -275,17 +260,6 @@ Outputs:
     Value: !Ref IdentityPool
     Export:
       Name: IdentityPool
-  appSyncApi:
-    Value: !Ref AppSyncApi
-    Export:
-      Name: !Sub ${AppName}-${Env}-AppSyncApi
-  appSyncApiId:
-    Value: !GetAtt AppSyncApi.ApiId
-    Export:
-      Name:
-        AppSyncApiId
-  graphQLEndpoint:
-    Value: !GetAtt AppSyncApi.GraphQLUrl
   userPoolWebClientId:
     Value: !Ref UserPoolClient
   lambdaExecutionRoleArn:
