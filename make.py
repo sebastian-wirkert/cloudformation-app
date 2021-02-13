@@ -61,14 +61,14 @@ def make_describe_stacks(outpath=None):
     return stack_description
 
 
-def extract_stack_outputs(stack_name='main-stack'):
+def extract_stack_outputs(valid_stack_names=None):
     stack_description = make_describe_stacks()
     stacks = stack_description['Stacks']
-    main_stack = [stack for stack in stacks if stack['StackName']==stack_name]
-    nr_main_stacks = len(main_stack)
-    assert nr_main_stacks == 1, f"expected exactly 1 main-stack, got {nr_main_stacks}"
-    main_stack = main_stack[0]
-    stack_outputs = main_stack['Outputs']
+    if valid_stack_names:
+       	stacks = [stack for stack in stacks if stack['StackName'] in valid_stack_names]
+    stack_outputs = []
+    for stack in stacks:
+        stack_outputs.extend(stack['Outputs'])
     formatted_stack_outputs = {output["OutputKey"]: output["OutputValue"] for output in stack_outputs}
     return formatted_stack_outputs
 
