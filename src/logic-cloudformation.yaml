@@ -15,6 +15,14 @@ Parameters:
       - dev
       - prod
 
+  Color:
+    Description: Is this the custumer facing (green) or tester facing (yellow) version. Both share same main-stack backbone. 
+    Default: green
+    Type: String
+    AllowedValues:
+      - green
+      - yellow
+
   CurrentGitHash:
     Description: The git hash for the uploaded functions
     Type: String
@@ -46,7 +54,7 @@ Resources:
     Type: "AWS::AppSync::GraphQLApi"
     Properties:
       AuthenticationType: !Ref MainGraphQLAuthenticationMethod
-      Name: !Sub "${AppName}-${Env}-Api"
+      Name: !Sub "${AppName}-${Env}-${Color}-Api"
       UserPoolConfig:
         UserPoolId: 
           Fn::ImportValue: !Sub ${AppName}-${Env}-UserPool
@@ -133,7 +141,7 @@ Resources:
   DummyFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub ${AppName}-${Env}-DummyFunction
+      FunctionName: !Sub ${AppName}-${Env}-${Color}-DummyFunction
       Handler: app.handler
       Role:
         Fn::ImportValue: !Sub ${AppName}-${Env}-LambdaExecutionRoleArn
@@ -184,11 +192,11 @@ Outputs:
   appSyncApi:
     Value: !Ref AppSyncApi
     Export:
-      Name: !Sub ${AppName}-${Env}-AppSyncApi
+      Name: !Sub ${AppName}-${Env}-${Color}-AppSyncApi
   appSyncApiId:
     Value: !GetAtt AppSyncApi.ApiId
     Export:
       Name:
-        !Sub ${AppName}-${Env}-AppSyncApiId
+        !Sub ${AppName}-${Env}-${Color}-AppSyncApiId
   graphQLEndpoint:
     Value: !GetAtt AppSyncApi.GraphQLUrl

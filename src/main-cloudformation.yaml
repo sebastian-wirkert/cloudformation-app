@@ -15,6 +15,14 @@ Parameters:
       - dev
       - prod
 
+  Color:
+    Description: Is this the custumer facing (green) or tester facing (yellow) version. Both share same main-stack backbone. 
+    Default: green
+    Type: String
+    AllowedValues:
+      - green
+      - yellow
+
   CurrentGitHash:
     Description: The git hash for the uploaded functions
     Type: String

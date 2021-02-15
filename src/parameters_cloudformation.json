@@ -5,7 +5,11 @@
   },
   {
     "ParameterKey": "Env",
-    "ParameterValue": "dev"
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "Color",
+    "ParameterValue": "yellow"
   },
   {
     "ParameterKey": "LambdaBucket",
