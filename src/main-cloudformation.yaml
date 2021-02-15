@@ -286,3 +286,5 @@ Outputs:
     Value: !Ref CognitoUnAuthorizedRole
     Export:
       Name: !Sub ${AppName}-${Env}-CognitoUnAuthorizedRole
+  mainGraphQLAuthenticationMethod:
+    Value: !Ref MainGraphQLAuthenticationMethod
