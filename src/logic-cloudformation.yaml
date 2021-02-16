@@ -147,9 +147,22 @@ Resources:
         Fn::ImportValue: !Sub ${AppName}-${Env}-LambdaExecutionRoleArn
       Runtime: python3.7
       Timeout: 25
+      Layers:
+        - !Ref Layer
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: !Sub "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
+
+
+  Layer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: !Sub ${AppName}-${Env}-${Color}-rdsandpushlayer
+      CompatibleRuntimes: 
+        - python3.7
+      Content:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: !Sub "${LambdaFolder}/layer_src${CurrentGitHash}.zip"
 
 
   AppSyncDataSourceDummyFunction:
