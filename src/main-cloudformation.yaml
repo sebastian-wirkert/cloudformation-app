@@ -45,6 +45,44 @@ Parameters:
       - AMAZON_COGNITO_USER_POOLS
       - OPENID_CONNECT
 
+  DBInstanceID:
+    Default: dbinstance
+    Description: My database instance
+    Type: String
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: >-
+      Must begin with a letter and must not end with a hyphen or contain two
+      consecutive hyphens.
+
+  DBName:
+    Default: db
+    Description: My database
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Must begin with a letter and contain only alphanumeric characters.
+
+  DBUsername:
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+
+  DBPassword:
+    NoEcho: 'true'
+    Description: Password MySQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+
 Resources:
 
   LambdaExecutionRole:
@@ -224,7 +262,6 @@ Resources:
                   - "cognito-identity:*"
                 Resource: "*"
   
-
   # Assigns the roles to the Identity Pool
   IdentityPoolRoleMapping:
     Type: "AWS::Cognito::IdentityPoolRoleAttachment"
@@ -255,6 +292,28 @@ Resources:
             - Effect: Allow
               Action: lambda:invokeFunction
               Resource: "arn:aws:lambda:*"
+
+  # Database stuff props to:
+  # https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/aws-properties-rds-dbcluster-scalingconfiguration.html
+  # https://gist.github.com/sjparkinson/e1c2f74475d2e8625ce4af85b892ab13#file-rds-aurora-cloudformation-example-yaml-L176
+  Database:
+    Type: AWS::RDS::DBCluster
+    Properties: 
+      BackupRetentionPeriod: 7
+      DatabaseName: !Sub ${AppName}${Env}${DBName}
+      DBClusterIdentifier: !Sub ${AppName}-${Env}-${DBName}-cluster
+      EnableHttpEndpoint: True
+      Engine: aurora
+      EngineVersion: 5.6.10a
+      EngineMode: serverless      
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      ScalingConfiguration:
+        AutoPause: true
+        MinCapacity: 1 # this should be at least two for production use cases according to documentation
+        MaxCapacity: 32
+        SecondsUntilAutoPause: 1000
+      PreferredBackupWindow: 01:00-02:00
 
 
 Outputs:

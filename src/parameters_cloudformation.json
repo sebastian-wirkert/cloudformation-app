@@ -5,7 +5,7 @@
   },
   {
     "ParameterKey": "Env",
-    "ParameterValue": "prod"
+    "ParameterValue": "dev"
   },
   {
     "ParameterKey": "Color",
@@ -26,5 +26,17 @@
   {
     "ParameterKey": "CurrentGitHash",
     "ParameterValue": "51a17e4"
+  },
+  {
+    "ParameterKey": "DBName",
+    "ParameterValue": "TODOTestDBName"
+  },
+  {
+    "ParameterKey": "DBUsername",
+    "ParameterValue": "TODOTestUser"
+  },
+  {
+    "ParameterKey": "DBPassword",
+    "ParameterValue": "TODOChangeMe"
   }
 ]
