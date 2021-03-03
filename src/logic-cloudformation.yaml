@@ -45,6 +45,11 @@ Parameters:
       - AMAZON_COGNITO_USER_POOLS
       - OPENID_CONNECT
 
+  DBSnapshot:
+    Description: Username for MySQL database access
+    Type: String
+    ConstraintDescription: arn of database snapshot
+
 Resources:
   
   # Appsync API. props to

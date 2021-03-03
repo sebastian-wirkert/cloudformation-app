@@ -32,11 +32,7 @@
     "ParameterValue": "TODOTestDBName"
   },
   {
-    "ParameterKey": "DBUsername",
-    "ParameterValue": "TODOTestUser"
-  },
-  {
-    "ParameterKey": "DBPassword",
-    "ParameterValue": "TODOChangeMe"
+    "ParameterKey": "DBSnapshot",
+    "ParameterValue": "TODOyourARN"
   }
 ]
