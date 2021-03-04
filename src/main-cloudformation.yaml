@@ -69,7 +69,16 @@ Parameters:
     Description: Username for MySQL database access
     Type: String
     ConstraintDescription: arn of database snapshot
+    
+  DBCreate:
+    Description: Should database be created. Creation causes costs and takes a while.
+    Default: 'false'
+    Type: String
+    AllowedValues: [true, false]
 
+
+Conditions: 
+  CreateDatabase: !Equals [ !Ref DBCreate, true ]
 
 Resources:
 
@@ -286,6 +295,7 @@ Resources:
   # https://gist.github.com/sjparkinson/e1c2f74475d2e8625ce4af85b892ab13#file-rds-aurora-cloudformation-example-yaml-L176
   Database:
     Type: AWS::RDS::DBCluster
+    Condition: CreateDatabase
     Properties: 
       #BackupRetentionPeriod: 7
       DatabaseName: !Sub ${AppName}${Env}${DBName}

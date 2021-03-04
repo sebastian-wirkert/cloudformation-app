@@ -50,6 +50,13 @@ Parameters:
     Type: String
     ConstraintDescription: arn of database snapshot
 
+  DBCreate:
+    Description: Should database be created. Creation causes costs and takes a while.
+    Default: 'false'
+    Type: String
+    AllowedValues: [true, false]
+
+
 Resources:
   
   # Appsync API. props to
