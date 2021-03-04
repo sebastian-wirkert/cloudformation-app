@@ -76,6 +76,15 @@ Parameters:
     Type: String
     AllowedValues: [true, false]
 
+  S3BucketName:
+    Type: String
+    Description: "S3 bucket to create."
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9_-]*"
+
+  DirsToCreate:
+    Description: "Comma delimited list of directories to create."
+    Type: CommaDelimitedList
+
 
 Conditions: 
   CreateDatabase: !Equals [ !Ref DBCreate, true ]
@@ -107,6 +116,18 @@ Resources:
             - logs:CreateLogStream
             - logs:PutLogEvents
             Resource: "*"
+      - PolicyName: s3Access 
+        PolicyDocument:
+          Statement:
+          - Action:
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:List*
+            Effect: Allow
+            Resource:
+            - !Sub arn:aws:s3:::${S3Bucket}/*
+            - !Sub arn:aws:s3:::${S3Bucket}
+          Version: '2012-10-17'
 
   # User authentification setup props to
   # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
@@ -313,6 +334,7 @@ Resources:
       #PreferredBackupWindow: 01:00-02:00
       SnapshotIdentifier: !Ref DBSnapshot
 
+  # s3 bucket generation with folder list props to: https://aws.amazon.com/de/premiumsupport/knowledge-center/cloudformation-s3-custom-resources/
 
 Outputs:
   region:

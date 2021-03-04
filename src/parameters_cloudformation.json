@@ -38,5 +38,13 @@
   {
     "ParameterKey": "DBCreate",
     "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "S3BucketName",
+    "ParameterValue": "TODOyourBucketName"
+  },
+  {
+    "ParameterKey": "DirsToCreate",
+    "ParameterValue": "public/users,public/users_small"
   }
 ]
