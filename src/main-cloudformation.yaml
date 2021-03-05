@@ -355,7 +355,7 @@ Resources:
       FunctionName: !Sub ${AppName}-${Env}-s3-setup
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 360
+      Timeout: 60
       Runtime: python3.6
       Code:
         S3Bucket: !Ref LambdaBucket
