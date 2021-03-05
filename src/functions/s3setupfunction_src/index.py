@@ -26,7 +26,7 @@ def handler(event, context):
         cfnresponse.send(event,
                          context,
                          cfnresponse.SUCCESS,
-                         response_data=response_data)
+                         response_data)
     except Exception as e:
         print("Execution failed...")
         print(str(e))
@@ -34,4 +34,4 @@ def handler(event, context):
         cfnresponse.send(event,
                          context,
                          cfnresponse.FAILED,
-                         response_data=response_data)
+                         response_data)
