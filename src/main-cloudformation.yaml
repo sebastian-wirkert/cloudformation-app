@@ -340,6 +340,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${AppName}-${Env}-${S3BucketName}
+      AccessControl: Private
 
   S3CustomResource:
     Type: Custom::S3CustomResource
@@ -360,6 +361,51 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: !Sub "${LambdaFolder}/s3setupfunction_src${CurrentGitHash}.zip"
+
+  # Add cloudfront to s3 
+  # Props to https://hackernoon.com/how-to-configure-cloudfront-using-cloudformation-template-2c263u56
+
+  CloudFrontOriginIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: 'origin identity'
+    
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginIdentity}'
+            Action: 's3:GetObject'
+            Resource: !Sub ${S3Bucket.Arn}/*
+  
+  publicDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt S3Bucket.RegionalDomainName
+            Id: S3-private-bucket
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginIdentity}'
+        Enabled: True
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: S3-private-bucket
+          ForwardedValues:
+            QueryString: False
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: True
 
 Outputs:
   region:
@@ -392,3 +438,7 @@ Outputs:
       Name: !Sub ${AppName}-${Env}-CognitoUnAuthorizedRole
   mainGraphQLAuthenticationMethod:
     Value: !Ref MainGraphQLAuthenticationMethod
+  cloudFrontDomainName:
+    Value: !GetAtt publicDistribution.DomainName
+    Export:
+      Name: !Sub ${AppName}-${Env}-CloudFrontDomainName
