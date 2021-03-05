@@ -25,7 +25,7 @@
   },
   {
     "ParameterKey": "CurrentGitHash",
-    "ParameterValue": "51a17e4"
+    "ParameterValue": "65dc6e3"
   },
   {
     "ParameterKey": "DBName",
@@ -41,7 +41,7 @@
   },
   {
     "ParameterKey": "S3BucketName",
-    "ParameterValue": "TODOyourBucketName"
+    "ParameterValue": "todo-your-bucket"
   },
   {
     "ParameterKey": "DirsToCreate",

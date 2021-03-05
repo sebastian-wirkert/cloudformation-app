@@ -336,6 +336,31 @@ Resources:
 
   # s3 bucket generation with folder list props to: https://aws.amazon.com/de/premiumsupport/knowledge-center/cloudformation-s3-custom-resources/
 
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AppName}-${Env}-${S3BucketName}
+
+  S3CustomResource:
+    Type: Custom::S3CustomResource
+    Properties:
+      ServiceToken: !GetAtt S3DirectoryCreateFunction.Arn
+      the_bucket: !Sub ${AppName}-${Env}-${S3BucketName}
+      dirs_to_create: !Ref DirsToCreate
+  
+  S3DirectoryCreateFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: "Create directories for S3 Buckets!"
+      FunctionName: !Sub ${AppName}-${Env}-s3-setup
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 360
+      Runtime: python3.6
+      Code:
+        S3Bucket: !Ref LambdaBucket
+        S3Key: !Sub "${LambdaFolder}/s3setupfunction_src${CurrentGitHash}.zip"
+
 Outputs:
   region:
     Value: !Sub "${AWS::Region}"
