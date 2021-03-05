@@ -60,7 +60,7 @@ for f in folders:
                 #create complete filepath of file in directory
                 filePath = os.path.join(folderName, filename)
                 # Add file to zip
-                zippedfile.write(filePath, os.path.basename(filePath))
+                zippedfile.write(filePath, os.path.relpath(filePath,f))
     # upload to s3
     try:
         response = s3_client.upload_file(zip_file_path, 
