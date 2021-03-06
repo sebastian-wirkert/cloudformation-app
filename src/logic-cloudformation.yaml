@@ -56,6 +56,15 @@ Parameters:
     Type: String
     AllowedValues: [true, false]
 
+  S3BucketName:
+    Type: String
+    Description: "S3 bucket to create."
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9_-]*"
+
+  DirsToCreate:
+    Description: "Comma delimited list of directories to create."
+    Type: CommaDelimitedList
+
 
 Resources:
   

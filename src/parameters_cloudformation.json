@@ -25,11 +25,7 @@
   },
   {
     "ParameterKey": "CurrentGitHash",
-    "ParameterValue": "63c2749"
-  },
-  {
-    "ParameterKey": "DBName",
-    "ParameterValue": "TODOTestDBName"
+    "ParameterValue": "03f37db"
   },
   {
     "ParameterKey": "DBSnapshot",
