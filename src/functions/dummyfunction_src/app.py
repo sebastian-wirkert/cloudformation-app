@@ -1,4 +1,11 @@
+# Required imports
+import os
+import botocore
+import boto3
 import json
+
+DBSecretsStoreArn= os.environ["DBSecretsStoreArn"]
+DBAuroraClusterArn= os.environ["DBAuroraClusterArn"]
 
 def handler(event, context):
     print(f"function executed with context: {context}")

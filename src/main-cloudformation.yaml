@@ -56,11 +56,23 @@ Parameters:
       Must begin with a letter and must not end with a hyphen or contain two
       consecutive hyphens.
 
+  DBName:
+    Description: Name of the database
+    Type: String
+
   DBSnapshot:
-    Description: Username for MySQL database access
+    Description: Arn for the initial loading of the database
     Type: String
     ConstraintDescription: arn of database snapshot
     
+  DBUser:
+    Description: Master user name
+    Type: String
+
+  DBPassword:
+    Description: Master user password
+    Type: String
+
   DBCreate:
     Description: Should database be created. Creation causes costs and takes a while.
     Default: 'false'
@@ -119,6 +131,29 @@ Resources:
             - !Sub arn:aws:s3:::${S3Bucket}/*
             - !Sub arn:aws:s3:::${S3Bucket}
           Version: '2012-10-17'
+      - PolicyName: "LambdaToRDSAuroraServerless"
+        PolicyDocument: 
+          Version: "2012-10-17"
+          Statement: 
+            - Effect: "Allow"
+              Action: 
+                - "rds-data:DeleteItems"
+                - "rds-data:ExecuteSql"
+                - "rds-data:GetItems"
+                - "rds-data:InsertItems"
+                - "rds-data:UpdateItems"
+              Resource: 
+                - !Join ['', ['arn:aws:rds:*:*:cluster:', !Ref Database]]
+                - !Join ['', ['arn:aws:rds:*:*:cluster:', !Ref Database, ':*']]
+      - PolicyName: "LambdaToAWSSecrets"
+        PolicyDocument: 
+          Version: "2012-10-17"
+          Statement: 
+            - Effect: "Allow"
+              Action: "secretsmanager:GetSecretValue"
+              Resource: 
+                - !Join ['', [!Ref RDSAuroraClusterMasterSecret]]
+                - !Join ['', [!Ref RDSAuroraClusterMasterSecret, ':*']]
 
   # User authentification setup props to
   # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
@@ -305,13 +340,15 @@ Resources:
   # Database stuff props to:
   # https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/aws-properties-rds-dbcluster-scalingconfiguration.html
   # https://gist.github.com/sjparkinson/e1c2f74475d2e8625ce4af85b892ab13#file-rds-aurora-cloudformation-example-yaml-L176
+  # https://acloudguru.com/blog/engineering/getting-started-with-the-amazon-aurora-serverless-data-api?utm_source=medium_blog&utm_medium=redirect&utm_campaign=medium_blog
+  # https://s3.amazonaws.com/cloudformation-templates-useast-1/rds-aurora-serverless/rds-aurora-serverless.yml
+  # TODO: export environment to add to lambda
   Database:
     Type: AWS::RDS::DBCluster
     Condition: CreateDatabase
     Properties: 
       #BackupRetentionPeriod: 7
-      DatabaseName: !Sub ${AppName}${Env}${DBName}
-      DBClusterIdentifier: !Sub ${AppName}-${Env}-${DBName}-cluster
+      DBClusterIdentifier: !Sub ${AppName}-${Env}-cluster
       #EnableHttpEndpoint: True
       Engine: aurora
       EngineMode: serverless      
@@ -325,8 +362,19 @@ Resources:
       #PreferredBackupWindow: 01:00-02:00
       SnapshotIdentifier: !Ref DBSnapshot
 
-  # s3 bucket generation with folder list props to: https://aws.amazon.com/de/premiumsupport/knowledge-center/cloudformation-s3-custom-resources/
+  RDSAuroraClusterMasterSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: DatabaseMasterSecret
+      Description: This contains the RDS Master user credentials for RDS Aurora Serverless Cluster
+      SecretString: 
+        !Sub |
+          {
+            "username": "${DBUser}",
+            "password": "${DBPassword}"
+          }
 
+  # s3 bucket generation with folder list props to: https://aws.amazon.com/de/premiumsupport/knowledge-center/cloudformation-s3-custom-resources/
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -355,7 +403,6 @@ Resources:
 
   # Add cloudfront to s3 
   # Props to https://hackernoon.com/how-to-configure-cloudfront-using-cloudformation-template-2c263u56
-
   CloudFrontOriginIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
@@ -433,3 +480,26 @@ Outputs:
     Value: !GetAtt publicDistribution.DomainName
     Export:
       Name: !Sub ${AppName}-${Env}-CloudFrontDomainName
+  dbHttpEndpoint:
+    Value: !GetAtt Endpoint.Address
+    Export:
+      Name: !Sub ${AppName}-${Env}-DBEndpoint
+  dbSecretsArn:
+    Value: !Ref RDSAuroraClusterMasterSecret
+    Description: AWS Secrets Arn 
+    Export:
+      Name: !Sub ${AppName}-${Env}-dbsecrets
+  dbClusterArn:
+    Value: !Join 
+      - ''
+      - - "arn:aws:rds:"
+        - !Ref AWS::Region
+        - ":"
+        - !Ref AWS::AccountId
+        - ":"
+        - "cluster"
+        - ":"
+        - !Ref Database
+    Description: arn of the db cluster
+    Export:
+      Name: !Sub ${AppName}-${Env}-dbclusterarn

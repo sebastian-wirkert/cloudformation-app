@@ -56,6 +56,18 @@ Parameters:
     Type: String
     AllowedValues: [true, false]
 
+  DBName:
+    Description: Name of the database
+    Type: String
+
+  DBUser:
+    Description: Master user name
+    Type: String
+
+  DBPassword:
+    Description: Master user password
+    Type: String
+
   S3BucketName:
     Type: String
     Description: "S3 bucket to create."
@@ -173,6 +185,13 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaBucket
         S3Key: !Sub "${LambdaFolder}/dummyfunction_src${CurrentGitHash}.zip"
+      Environment:
+        Variables:
+          # TODO does this work? DatabaseName: !Ref DatabaseName
+          DBAuroraClusterArn: 
+            Fn::ImportValue: !Sub ${AppName}-${Env}-dbclusterarn
+          DBSecretsStoreArn: 
+            Fn::ImportValue: !Sub ${AppName}-${Env}-dbsecrets
 
 
   Layer:
