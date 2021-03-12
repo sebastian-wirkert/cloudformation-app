@@ -7,6 +7,7 @@ import yaml
 import boto3
 
 from src import util
+from src.functions import upload_functions
 
 # parameters until first function
 allowed_stack_names = ["main-stack", "logic-stack"]
@@ -28,6 +29,10 @@ def make_dummy_user():
     stack_outputs = extract_our_stack_outputs()
     client_idp.sign_up(ClientId=stack_outputs['userPoolWebClientId'], Username='test@test.de', Password='testpw')
     client_idp.admin_confirm_sign_up(UserPoolId=stack_outputs['userPoolId'], Username='test@test.de')
+
+
+def make_upload_functions():
+    upload_functions.upload()
 
 
 def make_delete_stack(stack_name):
@@ -118,7 +123,8 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()    
     parser.add_argument('action',
                     choices=['update_stack', 'generate_aws_config', "describe_stack_config",
-                             'create_stack', 'delete_stack', 'add_dummy_user'],
+                             'create_stack', 'delete_stack', 'add_dummy_user',
+                             'upload_functions'],
                     type=str,
                     help='what shall be done')
     parser.add_argument("--outpath", default='out', required=False, type=str,
@@ -139,6 +145,8 @@ if __name__=="__main__":
         make_create_stack(full_stack_name, template_body)
     elif args.action=='delete_stack':
         make_delete_stack(full_stack_name)
+    elif args.action=='upload_functions':
+        make_upload_functions()
     elif args.action=='add_dummy_user':
         make_dummy_user()
 
