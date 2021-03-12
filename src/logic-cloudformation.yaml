@@ -103,9 +103,11 @@ Resources:
       Definition: |
 
         type Show {
-          sID: ID!
+          sID: ID
           sName: String
           description: String
+          pic: String
+          picCounter: Int
         }
 
         type Shows {
@@ -119,7 +121,7 @@ Resources:
         }
 
         type Mutation {
-          saveShow(sID: ID!, sName: String!, description: String!): Show
+          saveShow(sName: String!, description: String!): Show
           deleteShow(sID: ID!): Show
         }
 
@@ -145,10 +147,14 @@ Resources:
             Action:
               - "appsync:GraphQL"
             Resource:
-              - !Sub 
-                - "${AppSyncApiArn}/types/Mutation/fields/${AppSyncResolver}"
+              - !Sub  # allow all mutations for authorized access 
+                - "${AppSyncApiArn}/types/Mutation/fields/*"
                 - AppSyncApiArn: !GetAtt AppSyncApi.Arn 
-                  AppSyncResolver: !GetAtt AppSyncResolverDeleteShow.FieldName
+              # For more finegrained access do something like
+              #- !Sub 
+              #  - "${AppSyncApiArn}/types/Mutation/fields/${AppSyncResolver}"
+              #  - AppSyncApiArn: !GetAtt AppSyncApi.Arn 
+              #    AppSyncResolver: !GetAtt AppSyncResolverDeleteShow.FieldName
 
 
   UnauthorizedAccessPolicy:
@@ -165,10 +171,14 @@ Resources:
             Action:
               - "appsync:GraphQL"
             Resource:
-              - !Sub 
-                - "${AppSyncApiArn}/types/Query/fields/${AppSyncResolver}"
+              - !Sub  # allow all queries for unauthorized access 
+                - "${AppSyncApiArn}/types/Query/fields/*"
                 - AppSyncApiArn: !GetAtt AppSyncApi.Arn 
-                  AppSyncResolver: !GetAtt AppSyncResolverGetShow.FieldName
+              # For more finegrained access do something like
+              #- !Sub 
+                #- "${AppSyncApiArn}/types/Query/fields/${AppSyncResolver}"
+                #- AppSyncApiArn: !GetAtt AppSyncApi.Arn 
+                  #AppSyncResolver: !GetAtt AppSyncResolverGetShow.FieldName
 
 
   DummyFunction:
