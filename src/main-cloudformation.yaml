@@ -481,7 +481,7 @@ Outputs:
     Export:
       Name: !Sub ${AppName}-${Env}-CloudFrontDomainName
   dbHttpEndpoint:
-    Value: !GetAtt Endpoint.Address
+    Value: !GetAtt Database.Endpoint.Address
     Export:
       Name: !Sub ${AppName}-${Env}-DBEndpoint
   dbSecretsArn:
