@@ -144,8 +144,8 @@ Resources:
                 - "rds-data:InsertItems"
                 - "rds-data:UpdateItems"
               Resource: 
-                - !Join ['', ['arn:aws:rds:*:*:cluster:', !Ref Database]]
-                - !Join ['', ['arn:aws:rds:*:*:cluster:', !Ref Database, ':*']]
+                - !Sub arn:aws:rds:*:*:cluster:${Database}
+                - !Sub arn:aws:rds:*:*:cluster:${Database}:*
       - PolicyName: "LambdaToAWSSecrets"
         PolicyDocument: 
           Version: "2012-10-17"
@@ -153,8 +153,8 @@ Resources:
             - Effect: "Allow"
               Action: "secretsmanager:GetSecretValue"
               Resource: 
-                - !Join ['', [!Ref RDSAuroraClusterMasterSecret]]
-                - !Join ['', [!Ref RDSAuroraClusterMasterSecret, ':*']]
+                - !Ref RDSAuroraClusterMasterSecret
+                - !Sub ${RDSAuroraClusterMasterSecret}:*
 
   # User authentification setup props to
   # https://adrianhall.github.io/cloud/2018/04/17/deploy-an-aws-appsync-graphql-api-with-cloudformation/
@@ -238,7 +238,7 @@ Resources:
       GenerateSecret: false
       UserPoolId: !Ref UserPool
     
-  # Creates a federeated Identity pool
+  # Creates a federated Identity pool
   IdentityPool:
     Type: "AWS::Cognito::IdentityPool"
     Properties:
@@ -350,7 +350,7 @@ Resources:
     Properties: 
       #BackupRetentionPeriod: 7
       DBClusterIdentifier: !Sub ${AppName}-${Env}-cluster
-      #EnableHttpEndpoint: True
+      EnableHttpEndpoint: True
       Engine: aurora
       EngineMode: serverless      
       #MasterUsername: !Ref DBUsername
@@ -491,16 +491,7 @@ Outputs:
     Export:
       Name: !Sub ${AppName}-${Env}-dbsecrets
   dbClusterArn:
-    Value: !Join 
-      - ''
-      - - "arn:aws:rds:"
-        - !Ref AWS::Region
-        - ":"
-        - !Ref AWS::AccountId
-        - ":"
-        - "cluster"
-        - ":"
-        - !Ref Database
+    Value: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${Database}
     Description: arn of the db cluster
     Export:
       Name: !Sub ${AppName}-${Env}-dbclusterarn

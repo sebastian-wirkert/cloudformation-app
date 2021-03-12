@@ -19,7 +19,7 @@ def my_execute_statement(sql_statement, param_set):
         parameters = param_set)
 
 def create_parameter(name, value, param_type):
-    typestring = "stringValue",
+    typestring = "stringValue"
     if param_type=="int" or param_type=="long":
         typestring = "longValue"
     elif param_type=="bool":
