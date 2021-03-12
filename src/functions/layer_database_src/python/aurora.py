@@ -29,11 +29,13 @@ def create_parameter(name, value, param_type):
             "currently has to be one of int, long, bool or string")
     return {'name': name, 'value': {typestring: value}}
 
-def simple_call_rds_data_api(sql_statements, parameters):
+def simple_call_rds_data_api(sql_statements, parameters=None):
     """
     Get a list of or one sql statement and execute them.
     Response is returned.
     """
+    if parameters is None:
+        parameters = []
     if isinstance(sql_statements, list):
         sql = ';'.join(sql_statements)
     else:
