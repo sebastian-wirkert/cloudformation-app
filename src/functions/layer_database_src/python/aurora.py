@@ -16,7 +16,8 @@ def my_execute_statement(sql_statement, param_set):
         secretArn = DBSecretsStoreArn, 
         database = DBName, 
         sql = sql_statement,
-        parameters = param_set)
+        parameters = param_set,
+        includeResultMetadata= True)
 
 def create_parameter(name, value, param_type):
     typestring = "stringValue"
