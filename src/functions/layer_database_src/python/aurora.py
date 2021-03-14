@@ -56,8 +56,6 @@ def to_python_dict(rds_response, which_columns=None):
     column_selector = [True]*len(column_names)
     if which_columns is not None:
         column_selector = [column_name in which_columns for column_name in column_names]
-    
-        
     formatted_records = [format_record(record, column_names, column_selector) for record in records]
     return formatted_records
 

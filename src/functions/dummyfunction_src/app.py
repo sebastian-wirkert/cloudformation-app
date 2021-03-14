@@ -6,14 +6,13 @@ import aurora
 def handler(event, context):
     print(f"function executed with context: {context}")
     #print(f"function executed with event: {event}")
-    response = aurora.simple_call_rds_data_api("select * from shows", parameters=None)
-    print(response)
-    dummyshow = "no show"
+    response = aurora.simple_call_rds_data_api("select sName, sID, description, pic, picCounter from shows where sID=1", parameters=None)
+    response = aurora.to_python_dict(response)
     if event["resolve"]== "query.getShow":
-        dummyshow = "got Topmodel 2020"
+        response = response
     elif event["resolve"] == "mutation.deleteShow":
-        dummyshow = "deleted Dschungecamp"
+        response = {'sID': "100", 'sName': "fake delete", 'description': 'this is fake to test functionality'}
 
-    return {'sID': "100", 'sName': dummyshow, 'description': 'this is fake to test functionality'}
+    return response
 
 
