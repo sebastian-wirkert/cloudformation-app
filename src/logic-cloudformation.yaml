@@ -93,7 +93,6 @@ Resources:
           Fn::ImportValue: !Sub ${AppName}-${Env}-UserPool
         AwsRegion: !Sub ${AWS::Region}
         DefaultAction: "ALLOW"
-        
 
   AppSyncSchema:
     Type: "AWS::AppSync::GraphQLSchema"
@@ -130,7 +129,6 @@ Resources:
           mutation: Mutation
         }
 
-
   # Lambda setup, props to 
   # https://medium.com/@garry.passarella/create-and-deploy-an-aws-lambda-function-with-aws-cloudformation-583d5a2b1df0
 
@@ -156,7 +154,6 @@ Resources:
               #  - AppSyncApiArn: !GetAtt AppSyncApi.Arn 
               #    AppSyncResolver: !GetAtt AppSyncResolverDeleteShow.FieldName
 
-
   UnauthorizedAccessPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -180,6 +177,50 @@ Resources:
                 #- AppSyncApiArn: !GetAtt AppSyncApi.Arn 
                   #AppSyncResolver: !GetAtt AppSyncResolverGetShow.FieldName
 
+  AppSyncResolverGetShow:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Query
+      FieldName: getShow
+      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+  AppSyncResolverDeleteShow:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: deleteShow
+      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
+      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
+      ResponseMappingTemplate: $util.toJson($context.result)
+
+  AppSyncResolverAddShow:
+    Type: AWS::AppSync::Resolver    
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      TypeName: Mutation
+      FieldName: saveShow
+      DataSourceName: !GetAtt AppSyncDataSourceRDS.Name 
+      # put everything in one statement below because I'm not sure if overwise it will be executed as transaction
+      RequestMappingTemplate: | 
+        {
+          "version": "2018-05-29",
+          "statements": [
+            "insert into shows(sName, description) VALUES (:sName, :description); select sID, sName, description, pic, picCounter from shows WHERE sID=LAST_INSERT_ID()"
+          ],
+          "variableMap": {
+            ":sName": $util.toJson($ctx.args.sName.replace("'", "''")),
+            ":description": $util.toJson($ctx.args.description.replace("'", "''")) 
+          }
+        }
+      ResponseMappingTemplate: |
+        $utils.toJson($utils.rds.toJsonObject($ctx.result)[0][0])
 
   DummyFunction:
     Type: AWS::Lambda::Function
@@ -204,6 +245,17 @@ Resources:
           DBSecretsStoreArn: 
             Fn::ImportValue: !Sub ${AppName}-${Env}-dbsecrets
 
+  AppSyncDataSourceDummyFunction:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId: !GetAtt AppSyncApi.ApiId
+      Name: lambdaDataSource
+      Type: AWS_LAMBDA
+      LambdaConfig:
+        LambdaFunctionArn: !GetAtt DummyFunction.Arn
+      ServiceRoleArn: 
+        Fn::ImportValue: !Sub ${AppName}-${Env}-AppsyncLambdaRoleArn 
+
   DBLayer:
     Type: AWS::Lambda::LayerVersion
     Properties:
@@ -214,39 +266,23 @@ Resources:
         S3Bucket: !Ref LambdaBucket
         S3Key: !Sub "${LambdaFolder}/layer_database_src${CurrentGitHash}.zip"
 
-  AppSyncDataSourceDummyFunction:
+  AppSyncDataSourceRDS:
     Type: AWS::AppSync::DataSource
     Properties:
       ApiId: !GetAtt AppSyncApi.ApiId
-      Name: handler
-      Type: AWS_LAMBDA
-      LambdaConfig:
-        LambdaFunctionArn: !GetAtt DummyFunction.Arn
+      Name: rdsDataSource
+      Type: RELATIONAL_DATABASE
+      RelationalDatabaseConfig:
+        RelationalDatabaseSourceType: RDS_HTTP_ENDPOINT
+        RdsHttpEndpointConfig:
+            AwsRegion: !Ref AWS::Region
+            AwsSecretStoreArn:
+              Fn::ImportValue: !Sub ${AppName}-${Env}-dbsecrets
+            DatabaseName: !Ref DBName
+            DbClusterIdentifier:
+              Fn::ImportValue: !Sub ${AppName}-${Env}-dbclusterarn
       ServiceRoleArn: 
-        Fn::ImportValue: !Sub ${AppName}-${Env}-AppsyncLambdaRoleArn 
-
-  AppSyncResolverGetShow:
-    Type: AWS::AppSync::Resolver    
-    DependsOn: AppSyncSchema
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      TypeName: Query
-      FieldName: getShow
-      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "query.getShow", "context": $utils.toJson($context) } }'
-      ResponseMappingTemplate: $util.toJson($context.result)
-
-
-  AppSyncResolverDeleteShow:
-    Type: AWS::AppSync::Resolver    
-    DependsOn: AppSyncSchema
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      TypeName: Mutation
-      FieldName: deleteShow
-      DataSourceName: !GetAtt AppSyncDataSourceDummyFunction.Name
-      RequestMappingTemplate: '{ "version" : "2017-02-28", "operation": "Invoke", "payload": { "resolve": "mutation.deleteShow", "context": $utils.toJson($context) } }'
-      ResponseMappingTemplate: $util.toJson($context.result)
+        Fn::ImportValue: !Sub ${AppName}-${Env}-AppsyncRDSRoleArn 
 
 Outputs:
 

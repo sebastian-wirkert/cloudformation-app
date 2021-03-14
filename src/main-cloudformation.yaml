@@ -472,21 +472,6 @@ Resources:
         ViewerCertificate:
           CloudFrontDefaultCertificate: True
 
-  AppSyncDataSourceRDS:
-    Type: AWS::AppSync::DataSource
-    Properties:
-      ApiId: !GetAtt AppSyncApi.ApiId
-      Name: rdsDataSource
-      Type: RELATIONAL_DATABASE
-      RelationalDatabaseConfig:
-        RelationalDatabaseSourceType: RDS_HTTP_ENDPOINT
-        RdsHttpEndpointConfig:
-            AwsRegion: !Ref AWS::Region
-            AwsSecretStoreArn: !Ref RDSAuroraClusterMasterSecret
-            DatabaseName: !Ref DBName
-            DbClusterIdentifier: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${Database}
-      ServiceRoleArn: !GetAtt AppsyncRDSRole.Arn
-
 Outputs:
   region:
     Value: !Sub "${AWS::Region}"
@@ -540,8 +525,3 @@ Outputs:
     Description: arn of the db cluster
     Export:
       Name: !Sub ${AppName}-${Env}-dbclusterarn
-  datasourceRDS:
-    Value: !GetAtt AppSyncDataSourceDummyFunction.Name
-    Description: rds datasource for graphql
-    Export:
-      Name: !Sub ${AppName}-${Env}-datasourceRDS
