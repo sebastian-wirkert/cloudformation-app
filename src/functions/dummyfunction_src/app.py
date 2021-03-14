@@ -9,7 +9,7 @@ def handler(event, context):
     response = aurora.simple_call_rds_data_api("select sName, sID, description, pic, picCounter from shows where sID=1", parameters=None)
     response = aurora.to_python_dict(response)
     if event["resolve"]== "query.getShow":
-        response = response
+        response = response[0]
     elif event["resolve"] == "mutation.deleteShow":
         response = {'sID': "100", 'sName': "fake delete", 'description': 'this is fake to test functionality'}
 
