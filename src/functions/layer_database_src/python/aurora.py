@@ -44,3 +44,28 @@ def simple_call_rds_data_api(sql_statements, parameters=None):
  
     response = my_execute_statement(sql, parameters)
     return response 
+
+def to_python_dict(rds_response, which_columns=None):
+    """
+    Functionality inspired by:
+    https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html#rds-helpers-in-util-rds
+    """
+    column_metadata = rds_response["columnMetadata"]
+    records = rds_response["records"]
+    column_names = [metadata['name'] for metadata in column_metadata]
+    column_selector = [True]*len(column_names)
+    if which_columns is not None:
+        column_selector = [column_name in which_columns for column_name in column_names]
+    
+        
+    formatted_records = [format_record(record, column_names, column_selector) for record in records]
+    return formatted_records
+
+def format_record(record, column_names, column_selector):
+    formatted_record = {}
+    for column_name, column, select in zip(column_names, record, column_selector):
+        if select:
+            formatted_record[column_name]= list(column.values())[0]
+            if list(column.keys())[0] == "isNull":
+                formatted_record[column_name] = None
+    return formatted_record
