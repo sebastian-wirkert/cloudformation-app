@@ -243,6 +243,7 @@ Resources:
       ClientName: !Sub ${AppName}-${Env}-appsync-client
       GenerateSecret: false
       UserPoolId: !Ref UserPool
+      RefreshTokenValidity: 3650
       SupportedIdentityProviders:
         - COGNITO
         - Facebook
