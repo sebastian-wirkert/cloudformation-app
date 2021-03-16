@@ -278,6 +278,7 @@ Resources:
       ProviderName: Facebook
       AttributeMapping:
         email: email
+        "Preferred User Name": name
       ProviderDetails:
         client_id: TODOYourFacebookAppId
         client_secret: TODOYourFacebookAppSecret
@@ -291,6 +292,7 @@ Resources:
       ProviderName: Google
       AttributeMapping:
         email: email
+        "Preferred User Name": name
       ProviderDetails:
         client_id: TODOYourGoogleAppId
         client_secret: TODOYourGoogleAppSecret
@@ -304,14 +306,15 @@ Resources:
       #UserPoolId: !Ref UserPool
       #ProviderName: SignInWithApple
       #ProviderDetails:
-        #client_id: TODOYourSign
-        #team_id: TODOYourAppleTeamId
-        #key_id: TODOYourApplePrivateKeyID
-        #private_key: YourApplePrivateKey
-        #authorize_scopes: public_profile,email
+        #client_id: de.TODO.signin
+        #team_id: TODO
+        #key_id: TODO
+        #private_key: TODO
+        #authorize_scopes: name,email
       #ProviderType: SignInWithApple
       #AttributeMapping:
         #email: "email"
+        #"Preferred User Name": name
           
   # Creates a federated Identity pool
   IdentityPool:
