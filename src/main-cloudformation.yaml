@@ -243,7 +243,76 @@ Resources:
       ClientName: !Sub ${AppName}-${Env}-appsync-client
       GenerateSecret: false
       UserPoolId: !Ref UserPool
+      SupportedIdentityProviders:
+        - COGNITO
+        - Facebook
+        #- SignInWithApple
+        - Google
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: 
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin 
+      CallbackURLs: 
+        - !Sub ${AppName}://
+      DefaultRedirectURI: !Sub ${AppName}://
+      LogoutURLs: 
+        - !Sub ${AppName}://
+    DependsOn: 
+      - GoogleCognitoUserPoolIdentityProvider
+      #- AppleUserPoolIdentityProvider
+      - FacebookCognitoUserPoolIdentityProvider
+
+  CognitoUserPoUserPoolDomain: 
+    Type: AWS::Cognito::UserPoolDomain 
+    Properties:
+      UserPoolId: !Ref UserPool 
+      Domain: !Sub ${AppName}-${Env}
+
+  FacebookCognitoUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      ProviderName: Facebook
+      AttributeMapping:
+        email: email
+      ProviderDetails:
+        client_id: TODOYourFacebookAppId
+        client_secret: TODOYourFacebookAppSecret
+        authorize_scopes: email,public_profile
+      ProviderType: Facebook
+      UserPoolId: !Ref UserPool
     
+  GoogleCognitoUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      ProviderName: Google
+      AttributeMapping:
+        email: email
+      ProviderDetails:
+        client_id: TODOYourGoogleAppId
+        client_secret: TODOYourGoogleAppSecret
+        authorize_scopes: email openid profile
+      ProviderType: Google
+      UserPoolId: !Ref UserPool
+  
+  #AppleUserPoolIdentityProvider:
+    #Type: AWS::Cognito::UserPoolIdentityProvider
+    #Properties:
+      #UserPoolId: !Ref UserPool
+      #ProviderName: SignInWithApple
+      #ProviderDetails:
+        #client_id: TODOYourSign
+        #team_id: TODOYourAppleTeamId
+        #key_id: TODOYourApplePrivateKeyID
+        #private_key: YourApplePrivateKey
+        #authorize_scopes: public_profile,email
+      #ProviderType: SignInWithApple
+      #AttributeMapping:
+        #email: "email"
+          
   # Creates a federated Identity pool
   IdentityPool:
     Type: "AWS::Cognito::IdentityPool"
