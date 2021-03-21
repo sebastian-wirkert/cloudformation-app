@@ -25,15 +25,27 @@
   },
   {
     "ParameterKey": "CurrentGitHash",
-    "ParameterValue": "03f37db"
+    "ParameterValue": "364ed3f"
   },
   {
     "ParameterKey": "DBSnapshot",
-    "ParameterValue": "TODOyourARN"
+    "ParameterValue": "arn:aws:rds:eu-central-1:TODOyourSnapshotARN"
   },
   {
     "ParameterKey": "DBCreate",
-    "ParameterValue": "false"
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "DBName",
+    "ParameterValue": "ourDB"
+  },
+  {
+    "ParameterKey": "DBUser",
+    "ParameterValue": "TODOyourDatabaseUser"
+  },
+  {
+    "ParameterKey": "DBPassword",
+    "ParameterValue": "TODOyourPW"
   },
   {
     "ParameterKey": "S3BucketName",
